@@ -7,9 +7,9 @@ def validate_ffmpeg_command(cmd):
     # Must start with ffmpeg
     if not cmd.strip().startswith('ffmpeg'):
         return False, 'Command must start with ffmpeg.'
-    # Must contain input. and output.
-    if 'input.' not in cmd or 'output.' not in cmd:
-        return False, 'Command must reference input.[ext] and output.[ext].'
+    # Must contain input*. and output.
+    if not re.search(r'input(_[0-9]+)?\.[a-zA-Z0-9]+', cmd) or 'output.' not in cmd:
+        return False, 'Command must reference input*.ext and output.[ext].'
     # Disallow dangerous shell metacharacters
     if re.search(r'[;&|`$\\]', cmd):
         return False, 'Command contains forbidden shell characters.'

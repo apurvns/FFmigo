@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox
-from PyQt6.QtCore import Qt, pyqtSignal, QObject
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy
+from PyQt6.QtCore import Qt, pyqtSignal, QObject, QUrl, QTimer, QEvent
 from PyQt6.QtGui import QPixmap, QIcon, QDragEnterEvent, QDropEvent, QFont
 import os
 from backend import project_manager, thumbnailer
@@ -9,6 +9,8 @@ from ui.settings_dialog import SettingsDialog
 from backend import config
 import subprocess
 import sys
+from PyQt6.QtMultimediaWidgets import QVideoWidget
+from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 
 class DragDropWidget(QWidget):
     file_dropped = pyqtSignal(str)
@@ -17,16 +19,17 @@ class DragDropWidget(QWidget):
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.setMinimumHeight(300)
-        self.setStyleSheet('''
-            border: 2px dashed #aaa;
-            border-radius: 12px;
-            background: #fafbfc;
-        ''')
+        self.setObjectName("DragDropArea")
+        # Remove inline setStyleSheet, will be styled via QSS
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.icon = QLabel()
+        # TODO: Replace with modern SVG icon in resources/icons/upload.svg
+        # If not present, add your own SVG icon to resources/icons/upload.svg
+        self.icon.setObjectName("DragDropIcon")
         self.icon.setPixmap(QPixmap(os.path.join(os.path.dirname(__file__), '../resources/icons/film.png')).scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio))
         self.text = QLabel("<b>Drag and Drop Your Video File Here</b><br>or click to select a video")
+        self.text.setObjectName("DragDropText")
         self.text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.icon)
         layout.addWidget(self.text)
@@ -69,10 +72,12 @@ class MainWindow(QMainWindow):
         settings_row = QHBoxLayout()
         settings_row.addStretch(1)
         settings_btn = QPushButton("Settings")
+        settings_btn.setObjectName("SettingsButton")
         settings_btn.clicked.connect(self.open_settings)
         settings_row.addWidget(settings_btn)
         
         reopen_btn = QPushButton("Reopen Project")
+        reopen_btn.setObjectName("ReopenButton")
         reopen_btn.clicked.connect(self.open_project_dialog)
         settings_row.addWidget(reopen_btn)
         self.vbox.addLayout(settings_row)
@@ -80,41 +85,78 @@ class MainWindow(QMainWindow):
         self.dragdrop = DragDropWidget()
         self.dragdrop.file_dropped.connect(self.on_file_dropped)
         self.vbox.addWidget(self.dragdrop, stretch=7)
-        # Video thumbnail and path display (hidden until video loaded)
-        self.video_info_widget = QWidget()
-        self.video_info_layout = QHBoxLayout(self.video_info_widget)
-        self.thumbnail_label = QLabel()
-        self.thumbnail_label.setFixedSize(120, 90)
-        self.thumbnail_label.setScaledContents(True)
-        self.video_path_label = QLabel()
-        self.video_path_label.setWordWrap(True)
-        self.video_info_layout.addWidget(self.thumbnail_label)
-        self.video_info_layout.addWidget(self.video_path_label)
-        self.video_info_widget.hide()
-        self.vbox.addWidget(self.video_info_widget, stretch=0)
+        # Video player area (hidden until video loaded)
+        self.video_player_widget = QWidget()
+        self.video_player_layout = QVBoxLayout(self.video_player_widget)
+        self.video_widget = QVideoWidget()
+        self.video_widget.setMinimumHeight(360)
+        self.video_player_layout.addWidget(self.video_widget)
+        # Modern media control bar
+        self.media_controls = QWidget()
+        self.media_controls_layout = QHBoxLayout(self.media_controls)
+        self.media_controls_layout.setContentsMargins(0, 0, 0, 0)
+        # Play/Pause icon button
+        self.play_pause_btn = QPushButton()
+        self.play_pause_btn.setObjectName("PlayPauseButton")
+        self.play_pause_btn.setIcon(QIcon.fromTheme("media-playback-start"))
+        self.play_pause_btn.setFixedSize(40, 40)
+        self.play_pause_btn.clicked.connect(self.toggle_play_pause)
+        self.media_controls_layout.addWidget(self.play_pause_btn)
+        # Seek slider
+        self.seek_slider = QSlider(Qt.Orientation.Horizontal)
+        self.seek_slider.setRange(0, 100)
+        self.seek_slider.setSingleStep(1)
+        self.seek_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.seek_slider.sliderMoved.connect(self.seek_position)
+        self.media_controls_layout.addWidget(self.seek_slider)
+        # Time label
+        self.time_label = QLabel("00:00 / 00:00")
+        self.time_label.setObjectName("TimeLabel")
+        self.media_controls_layout.addWidget(self.time_label)
+        # Volume slider
+        self.volume_slider = QSlider(Qt.Orientation.Horizontal)
+        self.volume_slider.setRange(0, 100)
+        self.volume_slider.setValue(80)
+        self.volume_slider.setFixedWidth(80)
+        self.volume_slider.valueChanged.connect(self.set_volume)
+        self.media_controls_layout.addWidget(self.volume_slider)
+        # Fullscreen button
+        self.fullscreen_btn = QPushButton()
+        self.fullscreen_btn.setObjectName("FullscreenButton")
+        self.fullscreen_btn.setIcon(QIcon.fromTheme("view-fullscreen"))
+        self.fullscreen_btn.setFixedSize(36, 36)
+        self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
+        self.media_controls_layout.addWidget(self.fullscreen_btn)
+        # Export button (only enabled after processing)
+        self.export_btn = QPushButton("Export")
+        self.export_btn.setObjectName("ExportButton")
+        self.export_btn.setFixedHeight(36)
+        self.export_btn.clicked.connect(self.export_processed_video)
+        self.export_btn.setEnabled(False)
+        self.media_controls_layout.addWidget(self.export_btn)
+        self.media_controls.hide()
+        self.video_player_layout.addWidget(self.media_controls)
+        self.video_player_widget.hide()
+        self.vbox.addWidget(self.video_player_widget, stretch=7)
+        # Media player setup
+        self.media_player = QMediaPlayer()
+        self.audio_output = QAudioOutput()
+        self.media_player.setVideoOutput(self.video_widget)
+        self.media_player.setAudioOutput(self.audio_output)
+        self.media_player.playbackStateChanged.connect(self.update_play_pause_icon)
+        self.media_player.positionChanged.connect(self.update_position)
+        self.media_player.durationChanged.connect(self.update_duration)
+        self.media_player.errorOccurred.connect(self.handle_media_error)
+        # Timer for updating time label
+        self.timer = QTimer()
+        self.timer.setInterval(500)
+        self.timer.timeout.connect(self.update_time_label)
         # Chat log display
         self.chat_log = QTextEdit()
         self.chat_log.setReadOnly(True)
         self.chat_log.setMinimumHeight(120)
+        self.chat_log.setObjectName("ChatLog")
         self.vbox.addWidget(self.chat_log, stretch=2)
-        # Processed video area
-        self.processed_widget = QWidget()
-        self.processed_layout = QHBoxLayout(self.processed_widget)
-        self.processed_thumb = QLabel()
-        self.processed_thumb.setFixedSize(120, 90)
-        self.processed_thumb.setScaledContents(True)
-        self.processed_path = QLabel()
-        self.processed_path.setWordWrap(True)
-        self.play_btn = QPushButton("Play")
-        self.play_btn.clicked.connect(self.play_processed_video)
-        self.export_btn = QPushButton("Export")
-        self.export_btn.clicked.connect(self.export_processed_video)
-        self.processed_layout.addWidget(self.processed_thumb)
-        self.processed_layout.addWidget(self.processed_path)
-        self.processed_layout.addWidget(self.play_btn)
-        self.processed_layout.addWidget(self.export_btn)
-        self.processed_widget.hide()
-        self.vbox.addWidget(self.processed_widget, stretch=0)
         # Chat input area
         chat_area = QWidget()
         chat_layout = QHBoxLayout(chat_area)
@@ -122,11 +164,9 @@ class MainWindow(QMainWindow):
         self.chat_input.setPlaceholderText("Type your video editing command here...")
         self.chat_input.setFixedHeight(60)
         self.chat_input.setDisabled(True)
-        self.send_btn = QPushButton("Send")
-        self.send_btn.setDisabled(True)
-        self.send_btn.clicked.connect(self.on_send_clicked)
+        self.chat_input.setObjectName("ChatInput")
+        self.chat_input.installEventFilter(self)
         chat_layout.addWidget(self.chat_input, stretch=1)
-        chat_layout.addWidget(self.send_btn)
         self.vbox.addWidget(chat_area, stretch=3)
         # State
         self.project_dir = None
@@ -140,20 +180,13 @@ class MainWindow(QMainWindow):
         self.project_dir = project_manager.create_project_dir()
         self.input_path = project_manager.copy_video_to_project(file_path, self.project_dir)
         self.input_ext = os.path.splitext(self.input_path)[1][1:]  # e.g. 'mp4'
-        # Generate thumbnail
-        thumb_path = os.path.join(self.project_dir, 'thumb.jpg')
-        thumb_ok = thumbnailer.generate_thumbnail(self.input_path, thumb_path)
-        if thumb_ok and os.path.exists(thumb_path):
-            pix = QPixmap(thumb_path)
-        else:
-            pix = QPixmap(120, 90)
-            pix.fill(Qt.GlobalColor.lightGray)
-        self.thumbnail_label.setPixmap(pix)
-        self.video_path_label.setText(f"<b>Project Video:</b> {self.input_path}")
-        self.video_info_widget.show()
+        # Hide drag-and-drop, show video player
+        self.dragdrop.hide()
+        self.video_player_widget.show()
+        self.load_video(self.input_path)
+        self.media_controls.show()
+        self.export_btn.setEnabled(False)
         self.chat_input.setDisabled(False)
-        self.send_btn.setDisabled(False)
-        self.dragdrop.text.setText(f"Loaded: {os.path.basename(file_path)}")
         self.chat_log.clear()
         self.append_chat_log("System", "Video loaded. Ready for commands.")
 
@@ -161,13 +194,14 @@ class MainWindow(QMainWindow):
         from datetime import datetime
         ts = datetime.now().strftime('%H:%M:%S')
         if sender == "User":
-            self.chat_log.append(f'<div style="color:#005; text-align:right;"><b>User [{ts}]:</b> {message}</div>')
+            # Use objectName for QSS targeting
+            self.chat_log.append(f'<div class="UserBubble"><b>User [{ts}]:</b> {message}</div>')
         elif sender == "System":
-            self.chat_log.append(f'<div style="color:#333;"><b>System [{ts}]:</b> {message}</div>')
+            self.chat_log.append(f'<div class="SystemBubble"><b>System [{ts}]:</b> {message}</div>')
         elif sender == "Command":
-            self.chat_log.append(f'<div style="font-family:monospace; color:#0a0;">{message}</div>')
+            self.chat_log.append(f'<div class="CommandBubble">{message}</div>')
         elif sender == "Error":
-            self.chat_log.append(f'<div style="color:#a00;"><b>Error [{ts}]:</b> {message}</div>')
+            self.chat_log.append(f'<div class="ErrorBubble"><b>Error [{ts}]:</b> {message}</div>')
         self.chat_log.verticalScrollBar().setValue(self.chat_log.verticalScrollBar().maximum())
 
     def on_send_clicked(self):
@@ -177,7 +211,6 @@ class MainWindow(QMainWindow):
         self.append_chat_log("User", user_text)
         self.chat_input.clear()
         self.chat_input.setDisabled(True)
-        self.send_btn.setDisabled(True)
         self.append_chat_log("System", "Processing...")
         # Run in background thread to keep UI responsive
         threading.Thread(target=self.process_command, args=(user_text,), daemon=True).start()
@@ -193,35 +226,72 @@ class MainWindow(QMainWindow):
         self.append_chat_log("System", "Settings updated.")
 
     def update_processed_video(self, video_path):
-        thumb_path = os.path.join(self.project_dir, 'thumb.jpg')
-        thumbnailer.generate_thumbnail(video_path, thumb_path)
-        if os.path.exists(thumb_path):
-            pix = QPixmap(thumb_path)
-        else:
-            pix = QPixmap(120, 90)
-            pix.fill(Qt.GlobalColor.lightGray)
-        self.processed_thumb.setPixmap(pix)
-        self.processed_path.setText(f"<b>Processed Video:</b> {video_path}")
-        self.processed_path_file = video_path
-        self.processed_widget.show()
+        print(f'[DEBUG] Entered update_processed_video({video_path})')
+        try:
+            # Update the video player with the new processed video
+            self.load_video(video_path)
+            self.media_controls.show()
+            self.export_btn.setEnabled(True)
+            print(f'[DEBUG] update_processed_video: loaded {video_path} and updated controls')
+        except Exception as e:
+            print(f'[ERROR] Exception in update_processed_video: {e}')
+            import traceback; traceback.print_exc()
+            self.append_chat_log("Error", f"Exception updating video: {e}")
 
-    def play_processed_video(self):
-        if not self.processed_path_file or not os.path.exists(self.processed_path_file):
-            return
-        if sys.platform.startswith('darwin'):
-            subprocess.call(['open', self.processed_path_file])
-        elif os.name == 'nt':
-            os.startfile(self.processed_path_file)
-        elif os.name == 'posix':
-            subprocess.call(['xdg-open', self.processed_path_file])
+    def toggle_play_pause(self):
+        if self.media_player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+            self.media_player.pause()
+        else:
+            self.media_player.play()
+
+    def update_play_pause_icon(self, state):
+        if state == QMediaPlayer.PlaybackState.PlayingState:
+            self.play_pause_btn.setIcon(QIcon.fromTheme("media-playback-pause"))
+        else:
+            self.play_pause_btn.setIcon(QIcon.fromTheme("media-playback-start"))
+
+    def update_position(self, position):
+        self.seek_slider.blockSignals(True)
+        self.seek_slider.setValue(position)
+        self.seek_slider.blockSignals(False)
+        self.update_time_label()
+
+    def update_duration(self, duration):
+        self.seek_slider.setRange(0, duration)
+        self.update_time_label()
+
+    def seek_position(self, position):
+        self.media_player.setPosition(position)
+
+    def set_volume(self, value):
+        self.audio_output.setVolume(value / 100.0)
+
+    def update_time_label(self):
+        pos = self.media_player.position() // 1000
+        dur = self.media_player.duration() // 1000
+        pos_min, pos_sec = divmod(pos, 60)
+        dur_min, dur_sec = divmod(dur, 60)
+        self.time_label.setText(f"{pos_min:02}:{pos_sec:02} / {dur_min:02}:{dur_sec:02}")
+
+    def toggle_fullscreen(self):
+        if self.video_widget.isFullScreen():
+            self.video_widget.setFullScreen(False)
+        else:
+            self.video_widget.setFullScreen(True)
+
+    def handle_media_error(self, error):
+        if error:
+            QMessageBox.warning(self, "Playback Error", self.media_player.errorString())
 
     def export_processed_video(self):
         if not self.processed_path_file or not os.path.exists(self.processed_path_file):
+            QMessageBox.warning(self, "Export Failed", "No processed video to export.")
             return
         default_dir = self.app_config.get('export_dir', os.path.expanduser('~'))
         fname, _ = QFileDialog.getSaveFileName(self, "Export Processed Video", os.path.join(default_dir, os.path.basename(self.processed_path_file)))
         if fname:
             try:
+                import shutil
                 shutil.copy2(self.processed_path_file, fname)
                 QMessageBox.information(self, "Export", f"Exported to {fname}")
             except Exception as e:
@@ -231,96 +301,125 @@ class MainWindow(QMainWindow):
         # Use config values
         print(f"[INFO] User command: {user_text}")
         endpoint = self.app_config.get("llm_endpoint", "http://localhost:11434/api/generate")
-        model = self.app_config.get("llm_model", "qwen3:lates")
+        model = self.app_config.get("llm_model", "deepseek-coder:6.7b")
         ffmpeg_path = self.app_config.get("ffmpeg_path", "ffmpeg")
         # Get FFmpeg command from LLM
-        ffmpeg_cmd = llm_client.get_ffmpeg_command(user_text, self.input_ext, endpoint, model)
+        try:
+            import os
+            input_filename = os.path.basename(self.input_path)
+            ffmpeg_cmd = llm_client.get_ffmpeg_command(user_text, input_filename, self.input_ext, endpoint, model)
+        except Exception as e:
+            print(f"[ERROR] Exception in get_ffmpeg_command: {e}")
+            self.process_result_ready.emit({'error': f'LLM error: {e}'})
+            return
         if not ffmpeg_cmd:
             print("[ERROR] Failed to get command from LLM.")
-            # Defer GUI update to main thread
-            self.process_result_ready.emit({
-                'error': 'Failed to get command from LLM.'
-            })
+            self.process_result_ready.emit({'error': 'Failed to get command from LLM.'})
             return
         print(f"[INFO] FFmpeg command from LLM: {ffmpeg_cmd}")
         # Validate
-        valid, reason = ffmpeg_runner.validate_ffmpeg_command(ffmpeg_cmd)
+        try:
+            valid, reason = ffmpeg_runner.validate_ffmpeg_command(ffmpeg_cmd)
+        except Exception as e:
+            print(f"[ERROR] Exception in validate_ffmpeg_command: {e}")
+            self.process_result_ready.emit({'error': f'Validation error: {e}', 'ffmpeg_cmd': ffmpeg_cmd})
+            return
         if not valid:
             print(f"[ERROR] Invalid FFmpeg command: {reason}")
-            self.process_result_ready.emit({
-                'error': f'Invalid FFmpeg command: {reason}',
-                'ffmpeg_cmd': ffmpeg_cmd
-            })
+            self.process_result_ready.emit({'error': f'Invalid FFmpeg command: {reason}', 'ffmpeg_cmd': ffmpeg_cmd})
             return
         # Run FFmpeg (use ffmpeg_path if needed in ffmpeg_runner)
         print(f"[INFO] Running FFmpeg command...")
-        result = ffmpeg_runner.run_ffmpeg_command(ffmpeg_cmd, self.project_dir)
-        print(f"[INFO] FFmpeg finished. Success: {result['success']}")
-        # Prepare result for main thread
-        emit_data = {
-            'ffmpeg_cmd': ffmpeg_cmd,
-            'ffmpeg_result': result,
-            'user_text': user_text
-        }
-        if not result['success']:
-            emit_data['error'] = f"FFmpeg error: {result['stderr']}"
+        try:
+            result = ffmpeg_runner.run_ffmpeg_command(ffmpeg_cmd, self.project_dir)
+        except Exception as e:
+            print(f"[ERROR] Exception in run_ffmpeg_command: {e}")
+            self.process_result_ready.emit({'error': f'FFmpeg run error: {e}', 'ffmpeg_cmd': ffmpeg_cmd})
+            return
+        print(f"[INFO] FFmpeg finished. Success: {result.get('success')}")
+        emit_data = {'ffmpeg_cmd': ffmpeg_cmd, 'ffmpeg_result': result, 'user_text': user_text}
+        if not result.get('success'):
+            emit_data['error'] = f"FFmpeg error: {result.get('stderr')}"
+        else:
+            # Move output.ext to a new unique input file for chaining (in background thread)
+            try:
+                import shutil
+                output_ext = os.path.splitext(ffmpeg_cmd.split('output.')[1].split()[0])[0]
+                output_file = os.path.join(self.project_dir, f'output.{output_ext}')
+                print(f"[DEBUG] Looking for output file: {output_file}")
+                if not os.path.exists(output_file):
+                    print(f"[ERROR] Output file not found: {output_file}")
+                    emit_data['error'] = f"Expected output file {output_file} was not created. Check your command and try again."
+                    self.process_result_ready.emit(emit_data)
+                    return
+                base = os.path.join(self.project_dir, f'input')
+                idx = 1
+                max_idx = 1000
+                found_unique = False
+                while idx <= max_idx:
+                    new_input_file = f"{base}_{idx}.{output_ext}"
+                    if not os.path.exists(new_input_file):
+                        found_unique = True
+                        break
+                    idx += 1
+                if not found_unique:
+                    print(f"[ERROR] Could not find unique filename after {max_idx} tries.")
+                    emit_data['error'] = f"Could not find unique filename after {max_idx} tries."
+                    self.process_result_ready.emit(emit_data)
+                    return
+                print(f"[DEBUG] Moving {output_file} to {new_input_file}")
+                shutil.move(output_file, new_input_file)
+                thumb_path = os.path.join(self.project_dir, 'thumb.jpg')
+                try:
+                    thumbnailer.generate_thumbnail(new_input_file, thumb_path)
+                except Exception as e:
+                    print(f"[ERROR] Exception during thumbnail generation: {e}")
+                emit_data['new_input_file'] = new_input_file
+                emit_data['new_input_ext'] = output_ext
+            except Exception as e:
+                print(f"[ERROR] Could not update input file: {e}")
+                emit_data['error'] = f"Could not update input file: {e}"
+                self.process_result_ready.emit(emit_data)
+                return
         self.process_result_ready.emit(emit_data)
 
     def on_process_result_ready(self, data):
-        # This runs in the main thread. All GUI updates go here.
-        user_text = data.get('user_text', None)
-        ffmpeg_cmd = data.get('ffmpeg_cmd', None)
-        ffmpeg_result = data.get('ffmpeg_result', None)
-        error = data.get('error', None)
-        if user_text:
-            self.append_chat_log("User", user_text)
-        if ffmpeg_cmd:
-            self.append_chat_log("Command", ffmpeg_cmd)
-        if error:
-            self.append_chat_log("Error", error)
+        print('[DEBUG] Entered on_process_result_ready')
+        try:
+            user_text = data.get('user_text', None)
+            ffmpeg_cmd = data.get('ffmpeg_cmd', None)
+            ffmpeg_result = data.get('ffmpeg_result', None)
+            error = data.get('error', None)
+            new_input_file = data.get('new_input_file', None)
+            new_input_ext = data.get('new_input_ext', None)
+            if user_text:
+                self.append_chat_log("User", user_text)
+            if ffmpeg_cmd:
+                self.append_chat_log("Command", ffmpeg_cmd)
+            if error:
+                self.append_chat_log("Error", error)
+                self.enable_chat_input()
+                print('[DEBUG] on_process_result_ready: error branch, returning')
+                return
+            if ffmpeg_result and ffmpeg_result.get('success'):
+                if new_input_file and new_input_ext:
+                    print(f'[DEBUG] on_process_result_ready: calling update_processed_video({new_input_file})')
+                    self.input_path = new_input_file
+                    self.input_ext = new_input_ext
+                    self.update_processed_video(self.input_path)
+                self.append_chat_log("System", "Success!")
+            else:
+                self.append_chat_log("Error", f"FFmpeg error: {ffmpeg_result.get('stderr') if ffmpeg_result else 'Unknown error'}")
             self.enable_chat_input()
-            return
-        if ffmpeg_result and ffmpeg_result.get('success'):
-            # Move output.ext to input.ext for chaining
-            try:
-                output_ext = os.path.splitext(ffmpeg_cmd.split('output.')[1].split()[0])[0]
-                output_file = os.path.join(self.project_dir, f'output.{output_ext}')
-                new_input_file = os.path.join(self.project_dir, f'input.{output_ext}')
-                if not os.path.exists(output_file):
-                    self.append_chat_log("Error", f"Expected output file {output_file} was not created. Check your command and try again.")
-                    self.enable_chat_input()
-                    return
-                os.replace(output_file, new_input_file)
-                self.input_path = new_input_file
-                self.input_ext = output_ext
-                # Generate new thumbnail
-                thumb_path = os.path.join(self.project_dir, 'thumb.jpg')
-                try:
-                    thumbnailer.generate_thumbnail(self.input_path, thumb_path)
-                    if os.path.exists(thumb_path):
-                        pix = QPixmap(thumb_path)
-                        self.thumbnail_label.setPixmap(pix)
-                    else:
-                        print(f"[WARN] Thumbnail not generated: {thumb_path}")
-                        pix = QPixmap(120, 90)
-                        pix.fill(Qt.GlobalColor.lightGray)
-                        self.thumbnail_label.setPixmap(pix)
-                except Exception as e:
-                    print(f"[ERROR] Exception during thumbnail generation: {e}")
-                self.video_path_label.setText(f"<b>Project Video:</b> {self.input_path}")
-                # Update processed video area
-                self.update_processed_video(self.input_path)
-            except Exception as e:
-                print(f"[ERROR] Could not update input file: {e}")
-                self.append_chat_log("Error", f"Could not update input file: {e}")
-            self.append_chat_log("System", "Success!")
-        else:
-            self.append_chat_log("Error", f"FFmpeg error: {ffmpeg_result.get('stderr') if ffmpeg_result else 'Unknown error'}")
-        self.enable_chat_input()
+            print('[DEBUG] Exiting on_process_result_ready')
+        except Exception as e:
+            print(f'[ERROR] Exception in on_process_result_ready: {e}')
+            import traceback; traceback.print_exc()
+            self.append_chat_log("Error", f"Exception in result handler: {e}")
+            self.enable_chat_input()
 
     def enable_chat_input(self):
         self.chat_input.setDisabled(False)
-        self.send_btn.setDisabled(False)
 
     def open_project_dialog(self):
         from PyQt6.QtWidgets import QDialog, QListWidget, QVBoxLayout, QPushButton
@@ -365,22 +464,84 @@ class MainWindow(QMainWindow):
             return
         input_path = os.path.join(proj_dir, video_file)
         input_ext = os.path.splitext(input_path)[1][1:]
-        thumb_path = os.path.join(proj_dir, 'thumb.jpg')
         # Set state
         self.project_dir = proj_dir
         self.input_path = input_path
         self.input_ext = input_ext
-        # Update thumbnail
-        if os.path.exists(thumb_path):
-            pix = QPixmap(thumb_path)
-        else:
-            pix = QPixmap(120, 90)
-            pix.fill(Qt.GlobalColor.lightGray)
-        self.thumbnail_label.setPixmap(pix)
-        self.video_path_label.setText(f"<b>Project Video:</b> {self.input_path}")
-        self.video_info_widget.show()
+        # Hide drag-and-drop, show video player
+        self.dragdrop.hide()
+        self.video_player_widget.show()
+        self.load_video(self.input_path)
+        self.media_controls.show()
+        self.export_btn.setEnabled(False)
         self.chat_input.setDisabled(False)
-        self.send_btn.setDisabled(False)
-        self.dragdrop.text.setText(f"Loaded: {os.path.basename(input_path)} (from project)")
         self.chat_log.clear()
         self.append_chat_log("System", "Project loaded. Ready for commands.") 
+
+    def load_video(self, video_path):
+        print(f'[DEBUG] load_video: called with {video_path}')
+        try:
+            url = QUrl.fromLocalFile(video_path)
+            print('[DEBUG] load_video: created QUrl')
+            # Stop and delete the media player and audio output
+            try:
+                self.media_player.stop()
+                print('[DEBUG] load_video: stopped old media_player')
+                self.media_player.setSource(QUrl())
+                print('[DEBUG] load_video: cleared old source')
+                del self.media_player
+                del self.audio_output
+                print('[DEBUG] load_video: deleted old media_player and audio_output')
+            except Exception as e:
+                print(f'[DEBUG] load_video: exception deleting old player: {e}')
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(0, lambda: self._create_and_load_player(video_path))
+            print('[DEBUG] load_video: scheduled _create_and_load_player')
+        except Exception as e:
+            print(f'[ERROR] Exception in load_video: {e}')
+            import traceback; traceback.print_exc()
+            self.append_chat_log("Error", f"Exception loading video: {e}")
+            return
+
+    def _create_and_load_player(self, video_path):
+        print(f'[DEBUG] _create_and_load_player: called with {video_path}')
+        try:
+            from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
+            url = QUrl.fromLocalFile(video_path)
+            self.media_player = QMediaPlayer()
+            print('[DEBUG] _create_and_load_player: created new QMediaPlayer')
+            self.audio_output = QAudioOutput()
+            print('[DEBUG] _create_and_load_player: created new QAudioOutput')
+            self.media_player.setVideoOutput(self.video_widget)
+            print('[DEBUG] _create_and_load_player: set video output')
+            self.media_player.setAudioOutput(self.audio_output)
+            print('[DEBUG] _create_and_load_player: set audio output')
+            self.media_player.playbackStateChanged.connect(self.update_play_pause_icon)
+            self.media_player.positionChanged.connect(self.update_position)
+            self.media_player.durationChanged.connect(self.update_duration)
+            self.media_player.errorOccurred.connect(self.handle_media_error)
+            print('[DEBUG] _create_and_load_player: connected signals')
+            self.media_player.setSource(url)
+            print('[DEBUG] _create_and_load_player: set new source')
+            self.media_player.pause()
+            print('[DEBUG] _create_and_load_player: paused player')
+            self.processed_path_file = video_path
+            self.seek_slider.setValue(0)
+            self.seek_slider.setRange(0, 0)
+            self.time_label.setText("00:00 / 00:00")
+            print('[DEBUG] _create_and_load_player: finished')
+        except Exception as e:
+            print(f'[ERROR] Exception in _create_and_load_player: {e}')
+            import traceback; traceback.print_exc()
+            self.append_chat_log("Error", f"Exception loading video: {e}")
+            return
+
+    def eventFilter(self, obj, event):
+        if obj == self.chat_input and event.type() == QEvent.Type.KeyPress:
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                    return False  # allow newline
+                else:
+                    self.on_send_clicked()
+                    return True  # block default
+        return super().eventFilter(obj, event) 

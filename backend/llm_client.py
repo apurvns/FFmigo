@@ -1,12 +1,12 @@
 import requests
 import re
 
-def get_ffmpeg_command(user_query, input_ext, endpoint, model):
+def get_ffmpeg_command(user_query, input_filename, input_ext, endpoint, model):
     prompt = f"""
 You are an expert in FFmpeg. Your task is to convert a user's natural language instruction into a single, executable FFmpeg command.
 
 **Constraints:**
-1.  The input file will always be named 'input.{input_ext}' (the extension will vary).
+1.  The input file will always be named '{input_filename}' (the extension will vary).
 2.  The output file must always be named 'output.{input_ext}'. You will determine the correct output extension based on the user's request (e.g., 'output.mp4', 'output.gif').
 3.  Do NOT generate any command that could delete or overwrite files outside of the designated output file (e.g., no 'rm', 'mv' commands).
 4.  Do NOT add any explanations, apologies, or extra text. Your response must be ONLY the FFmpeg command.

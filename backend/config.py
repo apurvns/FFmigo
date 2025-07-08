@@ -9,7 +9,7 @@ def get_config():
     if not os.path.exists(path):
         return {
             'llm_endpoint': 'http://localhost:11434/api/generate',
-            'llm_model': 'qwen3:latest',
+            'llm_model': 'deepseek-coder:6.7b',
             'ffmpeg_path': 'ffmpeg',
             'export_dir': os.path.expanduser('~'),
         }
