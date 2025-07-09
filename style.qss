@@ -1,304 +1,116 @@
-/*
-FFMigo Modern Dark Theme QSS (PyQt6 compatible)
------------------------------------
-- No unsupported CSS (no transition, box-shadow, ::after)
-- Increased font sizes for readability
-- Clear button and chat/status box boundaries
-- Improved font fallback
-*/
-
-/* 1. Global Colors & Typography */
+/* T3Chat-inspired dark theme */
 QWidget {
-    background: #2C2F33;
-    color: #F2F3F5;
-    font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
-    font-size: 13pt;
+    background: #181c24;
+    color: #e6eaf3;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px;
 }
 
-QMainWindow, QDialog {
-    background: #2C2F33;
+#ProjectSidebar {
+    background: #202532;
+    border-right: 1px solid #23283a;
 }
-
-QLabel {
-    color: #B9BBBE;
-    font-size: 11pt;
-}
-
-QLabel#DragDropText {
-    color: #B9BBBE;
-    font-size: 14pt;
-    font-weight: 500;
-}
-
-QLabel#VideoPathLabel, QLabel#ProcessedPathLabel {
-    color: #F2F3F5;
-    font-size: 12pt;
-}
-
-QLabel#FfmpegTestResult {
-    font-size: 11pt;
-    margin-top: 4px;
-}
-
-/* Headings */
-QLabel[fontWeight="75"] {
-    font-size: 18pt;
-    font-weight: bold;
-    color: #F2F3F5;
-}
-
-/* 2. Drag and Drop Area */
-#DragDropArea {
-    background: #36393F;
-    border: 2px solid #40444B;
-    border-radius: 6px;
-    padding: 32px 0 32px 0;
-    margin: 8px 0 8px 0;
-}
-#DragDropArea:hover, #DragDropArea[dragOver="true"] {
-    border-color: #5865F2;
-}
-#DragDropIcon {
-    margin-bottom: 12px;
-}
-
-/* 3. Buttons */
-QPushButton {
-    border-radius: 6px;
-    padding: 10px 24px;
-    font-size: 13pt;
-    font-weight: 500;
-    border: 2px solid #40444B;
-    background: #36393F;
-    color: #5865F2;
-}
-QPushButton#SendButton {
-    background: #5865F2;
-    color: #F2F3F5;
-    border: 2px solid #5865F2;
-    min-width: 48px;
-    min-height: 36px;
-    border-radius: 6px;
-    font-size: 16pt;
-}
-QPushButton#SendButton:hover {
-    background: #6A77F7;
-    border: 2px solid #6A77F7;
-}
-QPushButton#PlayButton, QPushButton#ExportButton {
-    color: #5865F2;
-    border: 2px solid #5865F2;
-    background: #36393F;
-}
-QPushButton#PlayButton:hover, QPushButton#ExportButton:hover {
-    background: #5865F2;
-    color: #F2F3F5;
-}
-QPushButton#SettingsButton, QPushButton#ReopenButton {
-    color: #B9BBBE;
-    border: 2px solid #40444B;
-    background: #36393F;
-    font-size: 12pt;
-    padding: 6px 16px;
-}
-QPushButton#SettingsButton:hover, QPushButton#ReopenButton:hover {
-    color: #F2F3F5;
-    background: #40444B;
-}
-QPushButton#SaveSettingsButton, QPushButton#CancelSettingsButton, QPushButton#BrowseFfmpegButton, QPushButton#TestFfmpegButton, QPushButton#BrowseExportButton {
-    background: #36393F;
-    color: #F2F3F5;
-    border: 2px solid #40444B;
-    border-radius: 6px;
-    font-size: 12pt;
-    padding: 8px 20px;
-}
-QPushButton#SaveSettingsButton:hover, QPushButton#CancelSettingsButton:hover, QPushButton#BrowseFfmpegButton:hover, QPushButton#TestFfmpegButton:hover, QPushButton#BrowseExportButton:hover {
-    background: #5865F2;
-    color: #F2F3F5;
-    border: 2px solid #5865F2;
-}
-
-/* 4. Text Inputs */
-QLineEdit, QTextEdit {
-    background: #36393F;
-    color: #F2F3F5;
-    border: 2px solid #40444B;
-    border-radius: 6px;
-    padding: 12px 14px;
-    font-size: 16pt;
-}
-QLineEdit:focus, QTextEdit:focus {
-    border: 2px solid #5865F2;
-    background: #36393F;
-}
-QTextEdit#ChatInput {
-    min-height: 48px;
-    font-size: 16pt;
-    color: #F2F3F5;
-    background: #36393F;
-    border-radius: 6px;
-    border: 2px solid #40444B;
-    padding: 14px;
-    line-height: 1.5;
-}
-QTextEdit#ChatInput:focus {
-    border: 2px solid #5865F2;
-}
-QLineEdit[echoMode="2"] {
-    letter-spacing: 2px;
-}
-QLineEdit:disabled, QTextEdit:disabled {
-    background: #2C2F33;
-    color: #40444B;
-}
-
-/* 5. Chat Log & Bubbles */
-QTextEdit#ChatLog {
-    background: #2C2F33;
+#ProjectList {
+    background: transparent;
     border: none;
-    color: #F2F3F5;
-    padding: 18px 14px;
-    font-size: 16pt;
-    line-height: 1.5;
 }
-/* User bubble (right) */
-.UserBubble {
-    background: #40444B;
-    color: #F2F3F5;
+#ProjectList::item {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 2px 0;
+}
+#ProjectList::item:selected {
+    background: #2e3a5a;
+    color: #fff;
+}
+#NewProjectButton {
+    background: #2e3a5a;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    margin: 12px 16px;
+    padding: 10px 0;
+    font-weight: bold;
+}
+#NewProjectButton:hover {
+    background: #3b4a6b;
+}
+
+QSplitter::handle {
+    background: #23283a;
+}
+
+#SettingsButton, #ReopenButton, #ExportButton, #PlayPauseButton, #FullscreenButton {
+    background: #23283a;
+    color: #e6eaf3;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    margin: 0 4px;
+}
+#SettingsButton:hover, #ReopenButton:hover, #ExportButton:hover, #PlayPauseButton:hover, #FullscreenButton:hover {
+    background: #2e3a5a;
+}
+
+#ChatLog {
+    background: #202532;
+    border: 1px solid #23283a;
     border-radius: 10px;
-    border: 2px solid #5865F2;
-    padding: 12px 18px;
-    margin: 10px 0 10px 60px;
+    padding: 8px;
+}
+.UserBubble {
+    background: #2e3a5a;
+    color: #fff;
+    border-radius: 16px;
+    padding: 8px 16px;
+    margin: 8px 0 8px 40px;
     text-align: right;
 }
-/* System bubble (left) */
 .SystemBubble {
-    background: #36393F;
-    color: #B9BBBE;
-    border-radius: 10px;
-    border: 2px solid #40444B;
-    padding: 12px 18px;
-    margin: 10px 60px 10px 0;
+    background: #23283a;
+    color: #e6eaf3;
+    border-radius: 16px;
+    padding: 8px 16px;
+    margin: 8px 40px 8px 0;
     text-align: left;
 }
-/* Command bubble (monospace) */
 .CommandBubble {
-    background: #23272A;
-    color: #F2F3F5;
-    border: 2px solid #40444B;
-    border-radius: 7px;
-    font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
-    font-size: 12pt;
-    padding: 10px 16px;
-    margin: 10px 80px 10px 80px;
+    background: #1e2533;
+    color: #a3b1d1;
+    border-radius: 12px;
+    padding: 6px 14px;
+    margin: 6px 60px 6px 0;
+    font-family: 'Fira Mono', 'Consolas', monospace;
 }
-/* Error bubble */
 .ErrorBubble {
-    background: #2C2F33;
-    color: #F04747;
+    background: #3a1e2e;
+    color: #ffb3c6;
+    border-radius: 12px;
+    padding: 6px 14px;
+    margin: 6px 60px 6px 0;
+}
+#ChatInput {
+    background: #23283a;
+    color: #e6eaf3;
+    border: 1px solid #2e3a5a;
     border-radius: 10px;
-    border: 2px solid #F04747;
-    padding: 12px 18px;
-    margin: 10px 60px 10px 0;
-    text-align: left;
+    padding: 8px;
 }
-
-/* 6. Status Messages */
-.StatusProcessing, .StatusSuccess, .StatusError {
-    background: #23272A;
-    border-radius: 12px;
-    border: 2px solid #40444B;
-    padding: 18px 24px;
-    margin: 16px 0;
-    font-size: 17pt;
-    font-weight: 600;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.13);
-    display: flex;
-    align-items: center;
-    gap: 12px;
+QSlider::groove:horizontal {
+    border: 1px solid #23283a;
+    height: 6px;
+    background: #23283a;
+    border-radius: 3px;
 }
-.StatusSuccess {
-    border-color: #43B581;
-    color: #43B581;
-    background: #23272A;
-}
-.StatusError {
-    border-color: #F04747;
-    color: #F04747;
-    background: #23272A;
-}
-.StatusProcessing {
-    border-color: #40444B;
-    color: #B9BBBE;
-    background: #36393F;
-}
-.UserBubble, .SystemBubble, .CommandBubble, .ErrorBubble {
-    font-size: 16pt;
-    border-radius: 12px;
-    margin-bottom: 16px;
-    padding: 16px 22px;
-}
-/* Remove send button styles */
-QPushButton#SendButton { display: none; }
-
-/* 7. Thumbnails & Video Display */
-#VideoThumbnail, #ProcessedThumbnail {
-    border: 2px solid #40444B;
+QSlider::handle:horizontal {
+    background: #2e3a5a;
+    border: 1px solid #3b4a6b;
+    width: 16px;
+    margin: -5px 0;
     border-radius: 8px;
-    background: #23272A;
 }
-
-/* 8. Settings Dialog */
-#SettingsDialog {
-    background: #2C2F33;
-    border-radius: 10px;
-}
-#SettingsLabel {
-    color: #B9BBBE;
-    font-size: 12pt;
-    margin-bottom: 2px;
-}
-
-/* 9. Spacing & Layout */
-QWidget, QFrame, QGroupBox {
-    padding: 0;
-    margin: 0;
-}
-
-/* 10. Scrollbars (modern, minimal) */
-QScrollBar:vertical {
-    background: #23272A;
-    width: 12px;
-    margin: 4px 0 4px 0;
-    border-radius: 6px;
-}
-QScrollBar::handle:vertical {
-    background: #40444B;
-    min-height: 28px;
-    border-radius: 6px;
-}
-QScrollBar::handle:vertical:hover {
-    background: #5865F2;
-}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-    height: 0;
-}
-
-/* 11. Tooltips */
-QToolTip {
-    background: #36393F;
-    color: #F2F3F5;
-    border: 2px solid #40444B;
-    border-radius: 6px;
-    font-size: 12pt;
-}
-
-/* 12. Disabled State */
-QWidget:disabled {
-    color: #40444B;
-    background: #23272A;
-}
-
-/* 13. Placeholders for icons */
-/* Add your SVG icons to resources/icons/ and reference them in code for best results. */ 
+#TimeLabel {
+    color: #a3b1d1;
+    font-size: 13px;
+    padding: 0 8px;
+} 

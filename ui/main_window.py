@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy
-from PyQt6.QtCore import Qt, pyqtSignal, QObject, QUrl, QTimer, QEvent
-from PyQt6.QtGui import QPixmap, QIcon, QDragEnterEvent, QDropEvent, QFont
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy, QSplitter, QListWidget, QMenu, QListWidgetItem, QHBoxLayout
+from PyQt6.QtCore import Qt, pyqtSignal, QObject, QUrl, QTimer, QEvent, QSize
+from PyQt6.QtGui import QPixmap, QIcon, QDragEnterEvent, QDropEvent, QFont, QAction
 import os
 from backend import project_manager, thumbnailer
 from backend import llm_client, ffmpeg_runner
@@ -55,19 +55,89 @@ class DragDropWidget(QWidget):
                 if selected:
                     self.file_dropped.emit(selected[0])
 
+class ProjectSidebar(QWidget):
+    project_selected = pyqtSignal(str)
+    new_project_requested = pyqtSignal()
+    rename_project_requested = pyqtSignal(str)
+    delete_project_requested = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("ProjectSidebar")
+        self.setMinimumWidth(220)
+        self.setMaximumWidth(320)
+        self.vbox = QVBoxLayout(self)
+        self.vbox.setContentsMargins(0, 0, 0, 0)
+        self.vbox.setSpacing(0)
+        # New project button at the top
+        self.new_btn = QPushButton("+ New Project")
+        self.new_btn.setObjectName("NewProjectButton")
+        self.new_btn.clicked.connect(self.new_project_requested.emit)
+        self.vbox.addWidget(self.new_btn)
+        # Project list
+        self.project_list = QListWidget()
+        self.project_list.setObjectName("ProjectList")
+        self.project_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+        self.project_list.itemClicked.connect(self._on_item_clicked)
+        self.vbox.addWidget(self.project_list, stretch=1)
+        self.vbox.addStretch(1)
+        # Context menu for renaming and deleting
+        self.project_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.project_list.customContextMenuRequested.connect(self._show_context_menu)
+
+    def set_projects(self, projects, selected=None):
+        self.project_list.clear()
+        from backend import project_manager
+        for proj in projects:
+            name = project_manager.get_project_name(proj)
+            item = QListWidgetItem(name)
+            item.setData(Qt.ItemDataRole.UserRole, proj)
+            # Add delete icon
+            item.setIcon(QIcon.fromTheme("edit-delete"))
+            self.project_list.addItem(item)
+            if selected and proj == selected:
+                item.setSelected(True)
+
+    def _on_item_clicked(self, item):
+        proj_dir = item.data(Qt.ItemDataRole.UserRole)
+        self.project_selected.emit(proj_dir)
+
+    def _show_context_menu(self, pos):
+        item = self.project_list.itemAt(pos)
+        if item:
+            menu = QMenu(self)
+            rename_action = menu.addAction("Rename")
+            delete_action = menu.addAction("Delete")
+            action = menu.exec(self.project_list.mapToGlobal(pos))
+            if action == rename_action:
+                proj_dir = item.data(Qt.ItemDataRole.UserRole)
+                self.rename_project_requested.emit(proj_dir)
+            elif action == delete_action:
+                proj_dir = item.data(Qt.ItemDataRole.UserRole)
+                self.delete_project_requested.emit(proj_dir)
+
 class MainWindow(QMainWindow):
     process_result_ready = pyqtSignal(dict)
 
     def __init__(self):
         super().__init__()
         self.setWindowTitle("FFMigo Video Editor")
-        self.resize(900, 600)
+        self.resize(1100, 700)
         # Load config
         self.app_config = config.get_config()
-        # Main layout
-        central = QWidget()
-        self.setCentralWidget(central)
-        self.vbox = QVBoxLayout(central)
+        # Main layout: sidebar + main area
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.setCentralWidget(splitter)
+        # Sidebar
+        self.sidebar = ProjectSidebar()
+        self.sidebar.project_selected.connect(self.load_project)
+        self.sidebar.new_project_requested.connect(self.create_new_project)
+        self.sidebar.rename_project_requested.connect(self.rename_project)
+        self.sidebar.delete_project_requested.connect(self.delete_project)
+        splitter.addWidget(self.sidebar)
+        # Main area widget
+        self.main_area = QWidget()
+        self.vbox = QVBoxLayout(self.main_area)
         # Settings button row
         settings_row = QHBoxLayout()
         settings_row.addStretch(1)
@@ -75,11 +145,6 @@ class MainWindow(QMainWindow):
         settings_btn.setObjectName("SettingsButton")
         settings_btn.clicked.connect(self.open_settings)
         settings_row.addWidget(settings_btn)
-        
-        reopen_btn = QPushButton("Reopen Project")
-        reopen_btn.setObjectName("ReopenButton")
-        reopen_btn.clicked.connect(self.open_project_dialog)
-        settings_row.addWidget(reopen_btn)
         self.vbox.addLayout(settings_row)
         # Drag-and-drop area
         self.dragdrop = DragDropWidget()
@@ -174,6 +239,9 @@ class MainWindow(QMainWindow):
         self.input_ext = None
         self.processed_path_file = None
         self.process_result_ready.connect(self.on_process_result_ready)
+        self.refresh_project_list()
+        splitter.addWidget(self.main_area)  # <-- Ensure main area is visible
+        self.showMaximized()  # Start maximized, preferred for desktop apps
 
     def on_file_dropped(self, file_path):
         # Create project dir and copy video
@@ -189,6 +257,7 @@ class MainWindow(QMainWindow):
         self.chat_input.setDisabled(False)
         self.chat_log.clear()
         self.append_chat_log("System", "Video loaded. Ready for commands.")
+        self.refresh_project_list(select=self.project_dir)
 
     def append_chat_log(self, sender, message):
         from datetime import datetime
@@ -421,38 +490,48 @@ class MainWindow(QMainWindow):
     def enable_chat_input(self):
         self.chat_input.setDisabled(False)
 
-    def open_project_dialog(self):
-        from PyQt6.QtWidgets import QDialog, QListWidget, QVBoxLayout, QPushButton
-        import os
-        dlg = QDialog(self)
-        dlg.setWindowTitle("Reopen Project")
-        layout = QVBoxLayout(dlg)
-        list_widget = QListWidget()
+    def refresh_project_list(self, select=None):
         from backend import project_manager
         projects = project_manager.list_projects()
-        for proj in projects:
-            # Try to show video file name if exists
-            files = os.listdir(proj)
-            video_file = next((f for f in files if f.startswith('input.')), None)
-            label = os.path.basename(proj)
-            if video_file:
-                label += f" - {video_file}"
-            list_widget.addItem(label)
-        layout.addWidget(list_widget)
-        open_btn = QPushButton("Open")
-        open_btn.setEnabled(False)
-        layout.addWidget(open_btn)
-        list_widget.currentRowChanged.connect(lambda idx: open_btn.setEnabled(idx >= 0))
-        def do_open():
-            idx = list_widget.currentRow()
-            if idx < 0:
-                return
-            proj_dir = projects[idx]
-            dlg.accept()
-            self.load_project(proj_dir)
-        open_btn.clicked.connect(do_open)
-        dlg.setLayout(layout)
-        dlg.exec()
+        self.sidebar.set_projects(projects, selected=select or self.project_dir)
+
+    def create_new_project(self):
+        # Reset state and show drag-and-drop area for a new project
+        self.project_dir = None
+        self.input_path = None
+        self.input_ext = None
+        self.processed_path_file = None
+        self.dragdrop.show()
+        self.video_player_widget.hide()
+        self.media_controls.hide()
+        self.export_btn.setEnabled(False)
+        self.chat_input.setDisabled(False)
+        self.chat_log.clear()
+        self.append_chat_log("System", "Create a new project by dragging and dropping a video file.")
+
+    def rename_project(self, proj_dir):
+        from PyQt6.QtWidgets import QInputDialog
+        from backend import project_manager
+        cur_name = project_manager.get_project_name(proj_dir)
+        new_name, ok = QInputDialog.getText(self, "Rename Project", "New name:", text=cur_name)
+        if ok and new_name and new_name != cur_name:
+            project_manager.rename_project(proj_dir, new_name)
+            self.refresh_project_list(select=proj_dir)
+
+    def delete_project(self, proj_dir):
+        from PyQt6.QtWidgets import QMessageBox
+        from backend import project_manager
+        reply = QMessageBox.question(self, "Delete Project", f"Are you sure you want to delete this project? This cannot be undone.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            import shutil
+            try:
+                shutil.rmtree(proj_dir)
+                # If the deleted project is currently loaded, reset to new project
+                if self.project_dir == proj_dir:
+                    self.create_new_project()
+                self.refresh_project_list()
+            except Exception as e:
+                QMessageBox.warning(self, "Delete Failed", f"Could not delete project: {e}")
 
     def load_project(self, proj_dir):
         import os
@@ -466,6 +545,7 @@ class MainWindow(QMainWindow):
         input_ext = os.path.splitext(input_path)[1][1:]
         # Set state
         self.project_dir = proj_dir
+        self.refresh_project_list(select=proj_dir)
         self.input_path = input_path
         self.input_ext = input_ext
         # Hide drag-and-drop, show video player
