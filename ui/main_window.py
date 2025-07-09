@@ -123,10 +123,13 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("FFMigo Video Editor")
         self.resize(1100, 700)
+        self.setStyleSheet(open(os.path.join(os.path.dirname(__file__), '../style.qss')).read())
+        self.setContentsMargins(0, 0, 0, 0)
         # Load config
         self.app_config = config.get_config()
         # Main layout: sidebar + main area
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setHandleWidth(2)
         self.setCentralWidget(splitter)
         # Sidebar
         self.sidebar = ProjectSidebar()
@@ -138,6 +141,13 @@ class MainWindow(QMainWindow):
         # Main area widget
         self.main_area = QWidget()
         self.vbox = QVBoxLayout(self.main_area)
+        self.vbox.setContentsMargins(60, 40, 60, 40)
+        self.vbox.setSpacing(24)
+        # Large bold heading at the top center
+        heading = QLabel("How can I help you?")
+        heading.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        heading.setStyleSheet("font-size: 32px; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;")
+        self.vbox.addWidget(heading)
         # Settings button row
         settings_row = QHBoxLayout()
         settings_row.addStretch(1)
@@ -241,6 +251,8 @@ class MainWindow(QMainWindow):
         self.process_result_ready.connect(self.on_process_result_ready)
         self.refresh_project_list()
         splitter.addWidget(self.main_area)  # <-- Ensure main area is visible
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
         self.showMaximized()  # Start maximized, preferred for desktop apps
 
     def on_file_dropped(self, file_path):
