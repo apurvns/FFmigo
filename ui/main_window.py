@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy, QSplitter, QListWidget, QMenu, QListWidgetItem, QHBoxLayout
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy, QSplitter, QListWidget, QMenu, QListWidgetItem, QHBoxLayout, QScrollArea
 from PyQt6.QtCore import Qt, pyqtSignal, QObject, QUrl, QTimer, QEvent, QSize
 from PyQt6.QtGui import QPixmap, QIcon, QDragEnterEvent, QDropEvent, QFont, QAction
 import os
@@ -60,6 +60,7 @@ class ProjectSidebar(QWidget):
     new_project_requested = pyqtSignal()
     rename_project_requested = pyqtSignal(str)
     delete_project_requested = pyqtSignal(str)
+    settings_requested = pyqtSignal()  # Add signal for settings
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -69,21 +70,62 @@ class ProjectSidebar(QWidget):
         self.vbox = QVBoxLayout(self)
         self.vbox.setContentsMargins(0, 0, 0, 0)
         self.vbox.setSpacing(0)
-        # New project button at the top
+        # Top row: New Project button + Settings button
+        from PyQt6.QtWidgets import QHBoxLayout
+        top_row = QHBoxLayout()
+        top_row.setContentsMargins(12, 12, 12, 12)
         self.new_btn = QPushButton("+ New Project")
         self.new_btn.setObjectName("NewProjectButton")
         self.new_btn.clicked.connect(self.new_project_requested.emit)
-        self.vbox.addWidget(self.new_btn)
-        # Project list
+        top_row.addWidget(self.new_btn)
+        self.settings_btn = QPushButton()
+        self.settings_btn.setObjectName("SidebarSettingsButton")
+        import os
+        from PyQt6.QtGui import QIcon, QPixmap
+        icon_path_svg = os.path.join(os.path.dirname(__file__), "resources/icons/settings.svg")
+        icon_path_png = os.path.join(os.path.dirname(__file__), "resources/icons/settings.png")
+        if os.path.exists(icon_path_svg):
+            self.settings_btn.setIcon(QIcon(icon_path_svg))
+        elif os.path.exists(icon_path_png):
+            self.settings_btn.setIcon(QIcon(icon_path_png))
+        else:
+            svg_data = '''<svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" stroke="#a259ff" stroke-width="2" fill="#2d1e3a"/><path d="M14 10.5A3.5 3.5 0 1 1 10.5 14 3.5 3.5 0 0 1 14 10.5m0-2A5.5 5.5 0 1 0 19.5 14 5.5 5.5 0 0 0 14 8.5Z" fill="#fff"/><path d="M14 5v2M14 21v2M5 14h2M21 14h2M7.05 7.05l1.42 1.42M19.53 19.53l1.42 1.42M7.05 20.95l1.42-1.42M19.53 8.47l1.42-1.42" stroke="#a259ff" stroke-width="1.5" stroke-linecap="round"/></svg>'''
+            pixmap = QPixmap()
+            pixmap.loadFromData(bytes(svg_data, encoding='utf-8'), "SVG")
+            self.settings_btn.setIcon(QIcon(pixmap))
+        self.settings_btn.setToolTip("Settings")
+        self.settings_btn.setFixedSize(32, 32)
+        self.settings_btn.setIconSize(QSize(20, 20))
+        self.settings_btn.clicked.connect(self.settings_requested.emit)
+        top_row.addWidget(self.settings_btn)
+        top_row.addStretch(1)
+        self.vbox.addLayout(top_row)
+        # Scrollable project list
         self.project_list = QListWidget()
         self.project_list.setObjectName("ProjectList")
         self.project_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.project_list.itemClicked.connect(self._on_item_clicked)
-        self.vbox.addWidget(self.project_list, stretch=1)
-        self.vbox.addStretch(1)
+        # Wrap project_list in a QScrollArea
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setWidget(self.project_list)
+        self.vbox.addWidget(self.scroll_area, stretch=1)
         # Context menu for renaming and deleting
         self.project_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.project_list.customContextMenuRequested.connect(self._show_context_menu)
+        # Remove old settings button at bottom
+        # Add a container widget for bottom alignment
+        # from PyQt6.QtWidgets import QWidget, QHBoxLayout
+        # bottom_widget = QWidget()
+        # bottom_layout = QHBoxLayout(bottom_widget)
+        # bottom_layout.setContentsMargins(0, 8, 0, 8)
+        # bottom_layout.addStretch(1)
+        # bottom_layout.addWidget(self.settings_btn)
+        # bottom_layout.addStretch(1)
+        # self.vbox.addWidget(bottom_widget, alignment=Qt.AlignmentFlag.AlignBottom)
+        self.setMinimumHeight(600)  # Ensure sidebar is tall enough
 
     def set_projects(self, projects, selected=None):
         self.project_list.clear()
@@ -137,25 +179,18 @@ class MainWindow(QMainWindow):
         self.sidebar.new_project_requested.connect(self.create_new_project)
         self.sidebar.rename_project_requested.connect(self.rename_project)
         self.sidebar.delete_project_requested.connect(self.delete_project)
+        self.sidebar.settings_requested.connect(self.open_settings)  # Connect new signal
         splitter.addWidget(self.sidebar)
         # Main area widget
         self.main_area = QWidget()
         self.vbox = QVBoxLayout(self.main_area)
-        self.vbox.setContentsMargins(60, 40, 60, 40)
+        self.vbox.setContentsMargins(40, 32, 40, 32)  # Consistent margins for all main content
         self.vbox.setSpacing(24)
         # Large bold heading at the top center
         heading = QLabel("How can I help you?")
         heading.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         heading.setStyleSheet("font-size: 32px; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;")
         self.vbox.addWidget(heading)
-        # Settings button row
-        settings_row = QHBoxLayout()
-        settings_row.addStretch(1)
-        settings_btn = QPushButton("Settings")
-        settings_btn.setObjectName("SettingsButton")
-        settings_btn.clicked.connect(self.open_settings)
-        settings_row.addWidget(settings_btn)
-        self.vbox.addLayout(settings_row)
         # Drag-and-drop area
         self.dragdrop = DragDropWidget()
         self.dragdrop.file_dropped.connect(self.on_file_dropped)
@@ -163,6 +198,7 @@ class MainWindow(QMainWindow):
         # Video player area (hidden until video loaded)
         self.video_player_widget = QWidget()
         self.video_player_layout = QVBoxLayout(self.video_player_widget)
+        self.video_player_layout.setContentsMargins(0, 0, 0, 0)  # Remove extra margins
         self.video_widget = QVideoWidget()
         self.video_widget.setMinimumHeight(360)
         self.video_player_layout.addWidget(self.video_widget)
@@ -231,10 +267,12 @@ class MainWindow(QMainWindow):
         self.chat_log.setReadOnly(True)
         self.chat_log.setMinimumHeight(120)
         self.chat_log.setObjectName("ChatLog")
+        self.chat_log.setContentsMargins(0, 0, 0, 0)  # Remove extra margins
         self.vbox.addWidget(self.chat_log, stretch=2)
         # Chat input area
         chat_area = QWidget()
         chat_layout = QHBoxLayout(chat_area)
+        chat_layout.setContentsMargins(0, 0, 0, 0)  # Remove extra margins
         self.chat_input = QTextEdit()
         self.chat_input.setPlaceholderText("Type your video editing command here...")
         self.chat_input.setFixedHeight(60)

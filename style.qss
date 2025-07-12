@@ -13,6 +13,8 @@ QWidget {
     border-top-left-radius: 24px;
     border-bottom-left-radius: 24px;
     padding-top: 16px;
+    border-right: 2px solid #3a2e4a;
+    box-shadow: 2px 0 12px #a259ff11;
 }
 #ProjectList {
     background: transparent;
@@ -34,18 +36,22 @@ QWidget {
     color: #fff;
     border: none;
     border-radius: 20px;
-    margin: 18px 24px 12px 24px;
-    padding: 12px 0;
+    margin: 0 12px 0 0;
+    padding: 0 18px;
     font-weight: bold;
-    font-size: 17px;
+    font-size: 15px;
+    min-height: 32px;
+    max-height: 32px;
     box-shadow: 0 2px 12px #a259ff33;
+    line-height: 32px;
+    vertical-align: middle;
 }
 #NewProjectButton:hover {
     background: #c084fc;
 }
 
 QSplitter::handle {
-    background: #1a1422;
+    background: #3a2e4a;
     width: 2px;
 }
 
@@ -83,13 +89,14 @@ QSplitter::handle {
 }
 
 #ChatLog {
-    background: #18141d;
+    background: #221a2c;
     border-radius: 18px;
     padding: 16px;
     font-size: 16px;
     margin: 18px 0 0 0;
     min-height: 120px;
     box-shadow: 0 2px 12px #a259ff11;
+    border: 1.5px solid #28223a;
 }
 .UserBubble {
     background: #a259ff;
@@ -195,4 +202,29 @@ QSlider::handle:horizontal {
     color: #b6b1c9;
     font-size: 14px;
     margin-bottom: 8px;
+}
+#SidebarSettingsButton {
+    background: #2d1e3a;
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    min-width: 32px;
+    min-height: 32px;
+    max-width: 32px;
+    max-height: 32px;
+    margin: 0 0 0 0;
+    box-shadow: 0 2px 8px #a259ff22;
+    padding: 0;
+    vertical-align: middle;
+}
+#SidebarSettingsButton:hover {
+    background: #a259ff;
+    color: #fff;
+}
+#SidebarSettingsButton:pressed {
+    background: #6a3ea1;
+}
+#SidebarSettingsButton:focus {
+    outline: none;
+    border: 2px solid #a259ff;
 } 

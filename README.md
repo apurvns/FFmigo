@@ -86,3 +86,7 @@ python main.py
 
 ## License
 MIT
+
+# select python 3.10+ from cursor 
+Open Command Palette (Cmd+Shift+P)
+Search: Python: Select Interpreter

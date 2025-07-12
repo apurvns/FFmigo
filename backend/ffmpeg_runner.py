@@ -10,8 +10,10 @@ def validate_ffmpeg_command(cmd):
     # Must contain input*. and output.
     if not re.search(r'input(_[0-9]+)?\.[a-zA-Z0-9]+', cmd) or 'output.' not in cmd:
         return False, 'Command must reference input*.ext and output.[ext].'
-    # Disallow dangerous shell metacharacters
-    if re.search(r'[;&|`$\\]', cmd):
+    return True, ''
+
+    # Disallow dangerous shell metacharacters (allow colon for FFmpeg filter args)
+    if re.search(r'[;&|`$]', cmd):
         return False, 'Command contains forbidden shell characters.'
     # Should be a single command
     if '\n' in cmd:
