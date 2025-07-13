@@ -1,7 +1,31 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QMessageBox
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QMessageBox, QComboBox
 from PyQt6.QtCore import pyqtSignal
 import subprocess
 import os
+from backend import llm_client
+
+PROVIDER_DEFAULTS = {
+    'Ollama': {
+        'endpoint': 'http://localhost:11434/api/generate',
+        'api_key': '',
+        'model': '',
+    },
+    'OpenAI': {
+        'endpoint': 'https://api.openai.com/v1/chat/completions',
+        'api_key': '',
+        'model': 'gpt-3.5-turbo',
+    },
+    'Gemini': {
+        'endpoint': 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        'api_key': '',
+        'model': 'gemini-pro',
+    },
+    'Claude': {
+        'endpoint': 'https://api.anthropic.com/v1/messages',
+        'api_key': '',
+        'model': 'claude-3-opus-20240229',
+    },
+}
 
 class SettingsDialog(QDialog):
     settings_saved = pyqtSignal(dict)
@@ -12,19 +36,39 @@ class SettingsDialog(QDialog):
         self.setMinimumWidth(400)
         self.setObjectName("SettingsDialog")
         layout = QVBoxLayout(self)
+        # Provider selection
+        label_provider = QLabel("LLM Provider:")
+        label_provider.setObjectName("SettingsLabel")
+        layout.addWidget(label_provider)
+        self.provider = QComboBox()
+        self.provider.setObjectName("ProviderComboBox")
+        self.provider.addItems(["Ollama", "OpenAI", "Gemini", "Claude"])
+        layout.addWidget(self.provider)
+        # API Key (for OpenAI, Gemini, Claude)
+        self.label_api_key = QLabel("API Key:")
+        self.label_api_key.setObjectName("SettingsLabel")
+        self.api_key = QLineEdit()
+        self.api_key.setObjectName("ApiKeyInput")
+        self.api_key.setEchoMode(QLineEdit.EchoMode.Password)
+        layout.addWidget(self.label_api_key)
+        layout.addWidget(self.api_key)
         # LLM API endpoint
-        label_llm_endpoint = QLabel("LLM API Endpoint:")
-        label_llm_endpoint.setObjectName("SettingsLabel")
-        layout.addWidget(label_llm_endpoint)
+        self.label_llm_endpoint = QLabel("LLM API Endpoint:")
+        self.label_llm_endpoint.setObjectName("SettingsLabel")
         self.llm_endpoint = QLineEdit()
         self.llm_endpoint.setObjectName("LlmEndpointInput")
+        layout.addWidget(self.label_llm_endpoint)
         layout.addWidget(self.llm_endpoint)
-        # LLM model name
-        label_llm_model = QLabel("LLM Model Name:")
-        label_llm_model.setObjectName("SettingsLabel")
-        layout.addWidget(label_llm_model)
+        # LLM model selection (dropdown or text)
+        self.label_llm_model = QLabel("LLM Model:")
+        self.label_llm_model.setObjectName("SettingsLabel")
+        self.llm_model_combo = QComboBox()
+        self.llm_model_combo.setObjectName("LlmModelCombo")
+        self.llm_model_combo.setEditable(False)
         self.llm_model = QLineEdit()
         self.llm_model.setObjectName("LlmModelInput")
+        layout.addWidget(self.label_llm_model)
+        layout.addWidget(self.llm_model_combo)
         layout.addWidget(self.llm_model)
         # FFmpeg path
         ffmpeg_row = QHBoxLayout()
@@ -72,10 +116,50 @@ class SettingsDialog(QDialog):
         layout.addLayout(btn_row)
         # Load settings
         if settings:
-            self.llm_endpoint.setText(settings.get('llm_endpoint', ''))
-            self.llm_model.setText(settings.get('llm_model', ''))
+            provider = settings.get('provider', 'Ollama')
+            self.provider.setCurrentText(provider)
+            self.llm_endpoint.setText(settings.get('llm_endpoint', PROVIDER_DEFAULTS[provider]['endpoint']))
+            self.llm_model.setText(settings.get('llm_model', PROVIDER_DEFAULTS[provider]['model']))
+            self.api_key.setText(settings.get('api_key', PROVIDER_DEFAULTS[provider]['api_key']))
             self.ffmpeg_path.setText(settings.get('ffmpeg_path', ''))
             self.export_dir.setText(settings.get('export_dir', ''))
+        else:
+            self.provider.setCurrentText('Ollama')
+            self.llm_endpoint.setText(PROVIDER_DEFAULTS['Ollama']['endpoint'])
+            self.llm_model.setText(PROVIDER_DEFAULTS['Ollama']['model'])
+            self.api_key.setText('')
+        self.provider.currentTextChanged.connect(self.on_provider_changed)
+        self.on_provider_changed(self.provider.currentText())
+
+    def on_provider_changed(self, provider):
+        # Set sensible defaults
+        self.llm_endpoint.setText(PROVIDER_DEFAULTS[provider]['endpoint'])
+        self.llm_model.setText(PROVIDER_DEFAULTS[provider]['model'])
+        self.api_key.setText(PROVIDER_DEFAULTS[provider]['api_key'])
+        if provider == "Ollama":
+            self.label_api_key.hide()
+            self.api_key.hide()
+            self.llm_model.hide()
+            self.llm_model_combo.show()
+            # Fetch models from Ollama
+            endpoint = self.llm_endpoint.text().strip() or PROVIDER_DEFAULTS['Ollama']['endpoint']
+            models = llm_client.list_ollama_models(endpoint)
+            self.llm_model_combo.clear()
+            if models:
+                self.llm_model_combo.addItems(models)
+            else:
+                self.llm_model_combo.addItem("No models found")
+            self.label_llm_model.show()
+            self.label_llm_endpoint.show()
+            self.llm_endpoint.show()
+        else:
+            self.label_api_key.show()
+            self.api_key.show()
+            self.llm_model_combo.hide()
+            self.llm_model.show()
+            self.label_llm_model.show()
+            self.label_llm_endpoint.show()
+            self.llm_endpoint.show()
 
     def browse_ffmpeg(self):
         path, _ = QFileDialog.getOpenFileName(self, "Select FFmpeg Executable")
@@ -102,9 +186,16 @@ class SettingsDialog(QDialog):
             self.export_dir.setText(path)
 
     def save(self):
+        provider = self.provider.currentText()
+        if provider == "Ollama":
+            model = self.llm_model_combo.currentText()
+        else:
+            model = self.llm_model.text().strip()
         settings = {
+            'provider': provider,
             'llm_endpoint': self.llm_endpoint.text().strip(),
-            'llm_model': self.llm_model.text().strip(),
+            'llm_model': model,
+            'api_key': self.api_key.text().strip(),
             'ffmpeg_path': self.ffmpeg_path.text().strip(),
             'export_dir': self.export_dir.text().strip(),
         }

@@ -419,14 +419,16 @@ class MainWindow(QMainWindow):
     def process_command(self, user_text):
         # Use config values
         print(f"[INFO] User command: {user_text}")
+        provider = self.app_config.get("provider", "Ollama")
         endpoint = self.app_config.get("llm_endpoint", "http://localhost:11434/api/generate")
-        model = self.app_config.get("llm_model", "deepseek-coder:6.7b")
+        model = self.app_config.get("llm_model", "llama3")
+        api_key = self.app_config.get("api_key", None)
         ffmpeg_path = self.app_config.get("ffmpeg_path", "ffmpeg")
         # Get FFmpeg command from LLM
         try:
             import os
             input_filename = os.path.basename(self.input_path)
-            ffmpeg_cmd = llm_client.get_ffmpeg_command(user_text, input_filename, self.input_ext, endpoint, model)
+            ffmpeg_cmd = llm_client.get_ffmpeg_command(user_text, input_filename, self.input_ext, endpoint, model, provider, api_key)
         except Exception as e:
             print(f"[ERROR] Exception in get_ffmpeg_command: {e}")
             self.process_result_ready.emit({'error': f'LLM error: {e}'})

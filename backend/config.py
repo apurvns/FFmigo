@@ -8,13 +8,17 @@ def get_config():
     path = get_config_path()
     if not os.path.exists(path):
         return {
+            'provider': 'Ollama',
             'llm_endpoint': 'http://localhost:11434/api/generate',
-            'llm_model': 'deepseek-coder:6.7b',
+            'llm_model': 'llama3',
             'ffmpeg_path': 'ffmpeg',
             'export_dir': os.path.expanduser('~'),
         }
     with open(path, 'r') as f:
-        return json.load(f)
+        config = json.load(f)
+        if 'provider' not in config:
+            config['provider'] = 'Ollama'
+        return config
 
 def save_config(settings):
     path = get_config_path()
