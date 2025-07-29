@@ -1,8 +1,45 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy, QSplitter, QListWidget, QMenu, QListWidgetItem, QHBoxLayout, QScrollArea
-from PyQt6.QtCore import Qt, pyqtSignal, QObject, QUrl, QTimer, QEvent, QSize
-from PyQt6.QtGui import QPixmap, QIcon, QDragEnterEvent, QDropEvent, QFont, QAction
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy, QSplitter, QListWidget, QMenu, QListWidgetItem, QHBoxLayout, QScrollArea, QListWidgetItem, QStyledItemDelegate
+from PyQt6.QtCore import Qt, pyqtSignal, QObject, QUrl, QTimer, QEvent, QSize, QPoint
+from PyQt6.QtGui import QPixmap, QIcon, QDragEnterEvent, QDropEvent, QFont, QAction, QPainter, QColor
+from PyQt6.QtWidgets import QStyle
 import os
 from backend import project_manager, thumbnailer
+from ui.checkpoint_dialog import CheckpointDialog
+
+class ProjectItemDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        # Get the project data
+        project_dir = index.data(Qt.ItemDataRole.UserRole)
+        if not project_dir:
+            super().paint(painter, option, index)
+            return
+            
+        from backend import project_manager
+        name = project_manager.get_project_name(project_dir)
+        
+        # Truncate name if too long
+        if len(name) > 18:
+            name = name[:15] + "..."
+        
+        # Set up the painter
+        painter.save()
+        
+        # Draw background if selected (use theme color #2d1e3a)
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, QColor("#2d1e3a"))
+        
+        # Calculate text positions
+        text_rect = option.rect.adjusted(12, 8, -40, -8)  # Leave space for ⋯ button
+        button_rect = option.rect.adjusted(option.rect.width() - 30, 8, -8, -8)
+        
+        # Draw project name (left-aligned)
+        painter.setPen(option.palette.text().color())
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, name)
+        
+        # Draw ⋯ button (right-aligned)
+        painter.drawText(button_rect, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, "⋯")
+        
+        painter.restore()
 from backend import llm_client, ffmpeg_runner
 import threading
 from ui.settings_dialog import SettingsDialog
@@ -55,6 +92,10 @@ class DragDropWidget(QWidget):
                 if selected:
                     self.file_dropped.emit(selected[0])
 
+
+
+
+
 class ProjectSidebar(QWidget):
     project_selected = pyqtSignal(str)
     new_project_requested = pyqtSignal()
@@ -65,19 +106,28 @@ class ProjectSidebar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("ProjectSidebar")
-        self.setMinimumWidth(220)
+        self.setMinimumWidth(240)
         self.setMaximumWidth(320)
+        self.setFixedWidth(300)  # Set a fixed width to prevent layout issues
         self.vbox = QVBoxLayout(self)
         self.vbox.setContentsMargins(0, 0, 0, 0)
         self.vbox.setSpacing(0)
-        # Top row: New Project button + Settings button
+        # Top row: New Project button centered + Settings button on right
         from PyQt6.QtWidgets import QHBoxLayout
         top_row = QHBoxLayout()
         top_row.setContentsMargins(12, 12, 12, 12)
+        
+        # Add stretch to push new button to center
+        top_row.addStretch(1)
+        
         self.new_btn = QPushButton("+ New Project")
         self.new_btn.setObjectName("NewProjectButton")
         self.new_btn.clicked.connect(self.new_project_requested.emit)
         top_row.addWidget(self.new_btn)
+        
+        # Add stretch to push settings button to right
+        top_row.addStretch(1)
+        
         self.settings_btn = QPushButton()
         self.settings_btn.setObjectName("SidebarSettingsButton")
         import os
@@ -98,23 +148,26 @@ class ProjectSidebar(QWidget):
         self.settings_btn.setIconSize(QSize(20, 20))
         self.settings_btn.clicked.connect(self.settings_requested.emit)
         top_row.addWidget(self.settings_btn)
-        top_row.addStretch(1)
+        
         self.vbox.addLayout(top_row)
         # Scrollable project list
         self.project_list = QListWidget()
         self.project_list.setObjectName("ProjectList")
         self.project_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.project_list.itemClicked.connect(self._on_item_clicked)
+        # Context menu for renaming and deleting
+        self.project_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.project_list.customContextMenuRequested.connect(self._show_context_menu)
+        # Set custom delegate for proper ⋯ button alignment
+        self.project_list.setItemDelegate(ProjectItemDelegate())
         # Wrap project_list in a QScrollArea
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.scroll_area.setWidget(self.project_list)
         self.vbox.addWidget(self.scroll_area, stretch=1)
-        # Context menu for renaming and deleting
-        self.project_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.project_list.customContextMenuRequested.connect(self._show_context_menu)
         # Remove old settings button at bottom
         # Add a container widget for bottom alignment
         # from PyQt6.QtWidgets import QWidget, QHBoxLayout
@@ -129,34 +182,69 @@ class ProjectSidebar(QWidget):
 
     def set_projects(self, projects, selected=None):
         self.project_list.clear()
-        from backend import project_manager
         for proj in projects:
-            name = project_manager.get_project_name(proj)
-            item = QListWidgetItem(name)
+            item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.UserRole, proj)
-            # Add delete icon
-            item.setIcon(QIcon.fromTheme("edit-delete"))
             self.project_list.addItem(item)
             if selected and proj == selected:
                 item.setSelected(True)
 
     def _on_item_clicked(self, item):
         proj_dir = item.data(Qt.ItemDataRole.UserRole)
-        self.project_selected.emit(proj_dir)
+        
+        # Get click position to determine if menu button was clicked
+        pos = self.project_list.mapFromGlobal(self.project_list.cursor().pos())
+        item_rect = self.project_list.visualItemRect(item)
+        
+        # Check if click was in the right area (menu button area)
+        menu_area = item_rect.right() - 30  # 30px from right edge for menu button
+        if pos.x() > menu_area:
+            # Menu button clicked - show context menu at click position
+            self._show_context_menu_for_item_at_pos(item, pos)
+        else:
+            # Regular item click - select project
+            self.project_selected.emit(proj_dir)
 
     def _show_context_menu(self, pos):
         item = self.project_list.itemAt(pos)
         if item:
-            menu = QMenu(self)
-            rename_action = menu.addAction("Rename")
-            delete_action = menu.addAction("Delete")
-            action = menu.exec(self.project_list.mapToGlobal(pos))
-            if action == rename_action:
-                proj_dir = item.data(Qt.ItemDataRole.UserRole)
-                self.rename_project_requested.emit(proj_dir)
-            elif action == delete_action:
-                proj_dir = item.data(Qt.ItemDataRole.UserRole)
-                self.delete_project_requested.emit(proj_dir)
+            self._show_context_menu_for_item(item)
+
+    def _show_context_menu_for_item(self, item):
+        menu = QMenu(self)
+        rename_action = menu.addAction("Rename")
+        delete_action = menu.addAction("Delete")
+        
+        # Show menu at the right edge of the item, aligned with the menu button
+        item_rect = self.project_list.visualItemRect(item)
+        # Position menu at the right edge of the item
+        menu_x = item_rect.right() - 5  # 5px from right edge
+        menu_y = item_rect.center().y() - 10  # Center vertically with slight offset
+        pos = self.project_list.mapToGlobal(QPoint(menu_x, menu_y))
+        action = menu.exec(pos)
+        
+        if action == rename_action:
+            proj_dir = item.data(Qt.ItemDataRole.UserRole)
+            self.rename_project_requested.emit(proj_dir)
+        elif action == delete_action:
+            proj_dir = item.data(Qt.ItemDataRole.UserRole)
+            self.delete_project_requested.emit(proj_dir)
+
+    def _show_context_menu_for_item_at_pos(self, item, click_pos):
+        menu = QMenu(self)
+        rename_action = menu.addAction("Rename")
+        delete_action = menu.addAction("Delete")
+        
+        # Use the actual click position for menu placement
+        global_pos = self.project_list.mapToGlobal(click_pos)
+        action = menu.exec(global_pos)
+        
+        if action == rename_action:
+            proj_dir = item.data(Qt.ItemDataRole.UserRole)
+            self.rename_project_requested.emit(proj_dir)
+        elif action == delete_action:
+            proj_dir = item.data(Qt.ItemDataRole.UserRole)
+            self.delete_project_requested.emit(proj_dir)
 
 class MainWindow(QMainWindow):
     process_result_ready = pyqtSignal(dict)
@@ -238,6 +326,14 @@ class MainWindow(QMainWindow):
         self.fullscreen_btn.setFixedSize(36, 36)
         self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
         self.media_controls_layout.addWidget(self.fullscreen_btn)
+        # Checkpoint button
+        self.checkpoint_btn = QPushButton("Checkpoints")
+        self.checkpoint_btn.setObjectName("CheckpointButton")
+        self.checkpoint_btn.setFixedHeight(36)
+        self.checkpoint_btn.clicked.connect(self.open_checkpoints)
+        self.checkpoint_btn.setEnabled(False)
+        self.media_controls_layout.addWidget(self.checkpoint_btn)
+        
         # Export button (only enabled after processing)
         self.export_btn = QPushButton("Export")
         self.export_btn.setObjectName("ExportButton")
@@ -298,12 +394,14 @@ class MainWindow(QMainWindow):
         self.project_dir = project_manager.create_project_dir()
         self.input_path = project_manager.copy_video_to_project(file_path, self.project_dir)
         self.input_ext = os.path.splitext(self.input_path)[1][1:]  # e.g. 'mp4'
+        self.processed_path_file = self.input_path  # Set for export functionality
         # Hide drag-and-drop, show video player
         self.dragdrop.hide()
         self.video_player_widget.show()
         self.load_video(self.input_path)
         self.media_controls.show()
         self.export_btn.setEnabled(False)
+        self.checkpoint_btn.setEnabled(True)  # Enable checkpoints when video is loaded
         self.chat_input.setDisabled(False)
         self.chat_log.clear()
         self.append_chat_log("System", "Video loaded. Ready for commands.")
@@ -339,6 +437,51 @@ class MainWindow(QMainWindow):
         dlg.settings_saved.connect(self.save_settings)
         dlg.exec()
 
+    def open_checkpoints(self):
+        """Open the checkpoint dialog"""
+        if not self.project_dir:
+            QMessageBox.warning(self, "No Project", "No project is currently loaded.")
+            return
+        
+        dlg = CheckpointDialog(self.project_dir, self)
+        dlg.checkpoint_restored.connect(self.on_checkpoint_restored)
+        dlg.exec()
+
+    def on_checkpoint_restored(self, checkpoint_num, restored_file_path):
+        """Handle checkpoint restoration"""
+        print(f"[INFO] Checkpoint {checkpoint_num} restored to {restored_file_path}")
+        print(f"[DEBUG] Before restoration - input_path: {self.input_path}")
+        print(f"[DEBUG] Before restoration - input_ext: {self.input_ext}")
+        print(f"[DEBUG] Restored file exists: {os.path.exists(restored_file_path)}")
+        print(f"[DEBUG] Restored file size: {os.path.getsize(restored_file_path) if os.path.exists(restored_file_path) else 'N/A'}")
+        
+        # Use the restored file path directly
+        self.input_path = restored_file_path
+        self.input_ext = os.path.splitext(restored_file_path)[1][1:]
+        
+        print(f"[DEBUG] After restoration - input_path: {self.input_path}")
+        print(f"[DEBUG] After restoration - input_ext: {self.input_ext}")
+        print(f"[DEBUG] File exists: {os.path.exists(restored_file_path)}")
+        
+        # Force stop the current video player before loading the new one
+        try:
+            self.media_player.stop()
+            print(f"[DEBUG] Stopped current media player")
+        except:
+            pass
+        
+        # Reload the video player with the restored file
+        self.load_video(self.input_path)
+        self.export_btn.setEnabled(True)
+        self.checkpoint_btn.setEnabled(True)
+        
+        # Clear chat log and add restoration message
+        self.chat_log.clear()
+        self.append_chat_log("System", f"Restored to Checkpoint {checkpoint_num}. Ready for new commands.")
+        
+        print(f"[DEBUG] Restored to file: {restored_file_path}")
+        print(f"[DEBUG] Video player should now show the restored checkpoint")
+
     def save_settings(self, settings):
         self.app_config = settings
         config.save_config(settings)
@@ -351,7 +494,10 @@ class MainWindow(QMainWindow):
             self.load_video(video_path)
             self.media_controls.show()
             self.export_btn.setEnabled(True)
+            self.checkpoint_btn.setEnabled(True)  # Enable checkpoints after processing
+            self.processed_path_file = video_path  # Update for export functionality
             print(f'[DEBUG] update_processed_video: loaded {video_path} and updated controls')
+            print(f'[DEBUG] update_processed_video: export button enabled: {self.export_btn.isEnabled()}')
         except Exception as e:
             print(f'[ERROR] Exception in update_processed_video: {e}')
             import traceback; traceback.print_exc()
@@ -403,18 +549,38 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Playback Error", self.media_player.errorString())
 
     def export_processed_video(self):
-        if not self.processed_path_file or not os.path.exists(self.processed_path_file):
-            QMessageBox.warning(self, "Export Failed", "No processed video to export.")
+        print("EXPORT BUTTON CLICKED!")
+        print(f"[DEBUG] export_processed_video: input_path={self.input_path}")
+        print(f"[DEBUG] export_processed_video: input_path exists={os.path.exists(self.input_path) if self.input_path else False}")
+        print(f"[DEBUG] export_processed_video: export button enabled: {self.export_btn.isEnabled()}")
+        
+        if not self.input_path or not os.path.exists(self.input_path):
+            print("EXPORT FAILED: No input path or file doesn't exist")
+            QMessageBox.warning(self, "Export Failed", "No video to export.")
             return
+        
+        # Force enable the button just in case
+        self.export_btn.setEnabled(True)
+        
         default_dir = self.app_config.get('export_dir', os.path.expanduser('~'))
-        fname, _ = QFileDialog.getSaveFileName(self, "Export Processed Video", os.path.join(default_dir, os.path.basename(self.processed_path_file)))
+        suggested_name = os.path.basename(self.input_path)
+        print(f"[DEBUG] export_processed_video: suggested_name={suggested_name}")
+        
+        fname, _ = QFileDialog.getSaveFileName(self, "Export Video", os.path.join(default_dir, suggested_name))
+        print(f"[DEBUG] export_processed_video: selected fname={fname}")
+        
         if fname:
             try:
                 import shutil
-                shutil.copy2(self.processed_path_file, fname)
+                print(f"[DEBUG] export_processed_video: copying {self.input_path} to {fname}")
+                shutil.copy2(self.input_path, fname)
+                print("EXPORT SUCCESS!")
                 QMessageBox.information(self, "Export", f"Exported to {fname}")
             except Exception as e:
+                print(f"[ERROR] export_processed_video: exception: {e}")
                 QMessageBox.warning(self, "Export Failed", str(e))
+        else:
+            print("EXPORT CANCELLED: User cancelled file dialog")
 
     def process_command(self, user_text):
         # Use config values
@@ -424,10 +590,25 @@ class MainWindow(QMainWindow):
         model = self.app_config.get("llm_model", "llama3")
         api_key = self.app_config.get("api_key", None)
         ffmpeg_path = self.app_config.get("ffmpeg_path", "ffmpeg")
+        
+        # Create checkpoint before processing
+        if self.project_dir and self.input_path:
+            try:
+                checkpoint_num = project_manager.create_checkpoint(
+                    self.project_dir, 
+                    self.input_path, 
+                    f"Before: {user_text[:50]}{'...' if len(user_text) > 50 else ''}", 
+                    user_text
+                )
+                print(f"[INFO] Created checkpoint {checkpoint_num} before processing")
+            except Exception as e:
+                print(f"[WARNING] Failed to create checkpoint: {e}")
+        
         # Get FFmpeg command from LLM
         try:
             import os
             input_filename = os.path.basename(self.input_path)
+            print(f"[DEBUG] Using input file for FFmpeg command: {input_filename}")
             ffmpeg_cmd = llm_client.get_ffmpeg_command(user_text, input_filename, self.input_ext, endpoint, model, provider, api_key)
         except Exception as e:
             print(f"[ERROR] Exception in get_ffmpeg_command: {e}")
@@ -557,6 +738,7 @@ class MainWindow(QMainWindow):
         self.video_player_widget.hide()
         self.media_controls.hide()
         self.export_btn.setEnabled(False)
+        self.checkpoint_btn.setEnabled(False)  # Disable checkpoints for new project
         self.chat_input.setDisabled(False)
         self.chat_log.clear()
         self.append_chat_log("System", "Create a new project by dragging and dropping a video file.")
@@ -587,31 +769,67 @@ class MainWindow(QMainWindow):
 
     def load_project(self, proj_dir):
         import os
-        # Find the input video file
-        files = os.listdir(proj_dir)
-        video_file = next((f for f in files if f.startswith('input.')), None)
-        if not video_file:
+        import subprocess
+        
+        print(f"[DEBUG] load_project: loading project from {proj_dir}")
+        
+        # Use shell command to find the latest input file
+        try:
+            # Find all input files and get the one with highest number
+            cmd = f"ls {proj_dir}/input* 2>/dev/null | grep -E 'input_[0-9]+\.' | sort -V | tail -1"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            latest_input_file = result.stdout.strip()
+            
+            if not latest_input_file:
+                # No numbered files found, try to find input.mp4
+                cmd2 = f"ls {proj_dir}/input.mp4 2>/dev/null"
+                result2 = subprocess.run(cmd2, shell=True, capture_output=True, text=True)
+                latest_input_file = result2.stdout.strip()
+            
+            if not latest_input_file:
+                QMessageBox.warning(self, "Error", "No input video found in project.")
+                return
+            
+            # Extract just the filename from the full path
+            latest_input_file = os.path.basename(latest_input_file)
+            print(f"[DEBUG] load_project: found latest file: {latest_input_file}")
+            
+        except Exception as e:
+            print(f"[ERROR] load_project: error finding latest file: {e}")
             QMessageBox.warning(self, "Error", "No input video found in project.")
             return
-        input_path = os.path.join(proj_dir, video_file)
+        
+        input_path = os.path.join(proj_dir, latest_input_file)
         input_ext = os.path.splitext(input_path)[1][1:]
+        
         # Set state
         self.project_dir = proj_dir
         self.refresh_project_list(select=proj_dir)
         self.input_path = input_path
         self.input_ext = input_ext
+        self.processed_path_file = input_path  # Update processed_path_file for export
+        
         # Hide drag-and-drop, show video player
         self.dragdrop.hide()
         self.video_player_widget.show()
         self.load_video(self.input_path)
         self.media_controls.show()
-        self.export_btn.setEnabled(False)
+        
+        # Enable export button if this is an edited video (has numbered files)
+        has_edited_files = latest_input_file.startswith('input_')
+        print(f"[DEBUG] load_project: has_edited_files: {has_edited_files}")
+        self.export_btn.setEnabled(True)  # Always enable export button
+        self.checkpoint_btn.setEnabled(True)  # Enable checkpoints when project is loaded
+        print(f"[DEBUG] load_project: export button state: {self.export_btn.isEnabled()}")
+        
         self.chat_input.setDisabled(False)
         self.chat_log.clear()
         self.append_chat_log("System", "Project loaded. Ready for commands.") 
 
     def load_video(self, video_path):
         print(f'[DEBUG] load_video: called with {video_path}')
+        print(f'[DEBUG] load_video: file exists = {os.path.exists(video_path)}')
+        print(f'[DEBUG] load_video: file size = {os.path.getsize(video_path) if os.path.exists(video_path) else "N/A"}')
         try:
             url = QUrl.fromLocalFile(video_path)
             print('[DEBUG] load_video: created QUrl')
@@ -637,9 +855,11 @@ class MainWindow(QMainWindow):
 
     def _create_and_load_player(self, video_path):
         print(f'[DEBUG] _create_and_load_player: called with {video_path}')
+        print(f'[DEBUG] _create_and_load_player: file exists = {os.path.exists(video_path)}')
         try:
             from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
             url = QUrl.fromLocalFile(video_path)
+            print(f'[DEBUG] _create_and_load_player: created QUrl from {video_path}')
             self.media_player = QMediaPlayer()
             print('[DEBUG] _create_and_load_player: created new QMediaPlayer')
             self.audio_output = QAudioOutput()
@@ -654,7 +874,7 @@ class MainWindow(QMainWindow):
             self.media_player.errorOccurred.connect(self.handle_media_error)
             print('[DEBUG] _create_and_load_player: connected signals')
             self.media_player.setSource(url)
-            print('[DEBUG] _create_and_load_player: set new source')
+            print(f'[DEBUG] _create_and_load_player: set new source to {video_path}')
             self.media_player.pause()
             print('[DEBUG] _create_and_load_player: paused player')
             self.processed_path_file = video_path

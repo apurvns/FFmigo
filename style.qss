@@ -14,7 +14,6 @@ QWidget {
     border-bottom-left-radius: 24px;
     padding-top: 16px;
     border-right: 2px solid #3a2e4a;
-    box-shadow: 2px 0 12px #a259ff11;
 }
 #ProjectList {
     background: transparent;
@@ -30,32 +29,54 @@ QWidget {
 #ProjectList::item:selected {
     background: #2d1e3a;
     color: #fff;
+    border-radius: 0px;
 }
-#NewProjectButton {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #a259ff, stop:1 #6a3ea1);
-    color: #fff;
+#ProjectListItemMenuButton {
+    background: transparent;
+    color: #b6b1c9;
     border: none;
-    border-radius: 20px;
-    margin: 0 12px 0 0;
-    padding: 0 18px;
-    font-weight: bold;
-    font-size: 15px;
-    min-height: 32px;
-    max-height: 32px;
-    box-shadow: 0 2px 12px #a259ff33;
-    line-height: 32px;
+    border-radius: 14px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    padding: 0;
+    margin: 0 0 0 8px;
+    font-size: 20px;
     vertical-align: middle;
 }
-#NewProjectButton:hover {
-    background: #c084fc;
+#ProjectListItemMenuButton:hover {
+    background: #2d1e3a;
+    color: #fff;
 }
+
 
 QSplitter::handle {
     background: #3a2e4a;
     width: 2px;
 }
 
-#SettingsButton, #ReopenButton, #ExportButton, #PlayPauseButton, #FullscreenButton {
+#NewProjectButton {
+    background: #a259ff;
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 8px 16px;
+    margin: 0 8px;
+    font-size: 17px;
+    font-weight: 600;
+    min-width: 120px;
+    text-align: center;
+}
+#NewProjectButton:hover {
+    background: #b366ff;
+    color: #fff;
+}
+#NewProjectButton:pressed {
+    background: #8b4dff;
+}
+
+#SettingsButton, #ReopenButton, #ExportButton, #PlayPauseButton, #FullscreenButton, #CheckpointButton {
     background: #2d1e3a;
     color: #fff;
     border: none;
@@ -65,9 +86,8 @@ QSplitter::handle {
     font-size: 16px;
     font-weight: 500;
     min-width: 90px;
-    box-shadow: 0 2px 8px #a259ff22;
 }
-#SettingsButton:hover, #ReopenButton:hover, #ExportButton:hover, #PlayPauseButton:hover, #FullscreenButton:hover {
+#SettingsButton:hover, #ReopenButton:hover, #ExportButton:hover, #PlayPauseButton:hover, #FullscreenButton:hover, #CheckpointButton:hover {
     background: #a259ff;
     color: #fff;
 }
@@ -77,7 +97,6 @@ QSplitter::handle {
     border-radius: 24px;
     border: none;
     margin: 32px 0 32px 0;
-    box-shadow: 0 4px 32px #a259ff11;
 }
 #DragDropIcon {
     margin-bottom: 18px;
@@ -95,7 +114,6 @@ QSplitter::handle {
     font-size: 16px;
     margin: 18px 0 0 0;
     min-height: 120px;
-    box-shadow: 0 2px 12px #a259ff11;
     border: 1.5px solid #28223a;
 }
 .UserBubble {
@@ -213,7 +231,6 @@ QSlider::handle:horizontal {
     max-width: 32px;
     max-height: 32px;
     margin: 0 0 0 0;
-    box-shadow: 0 2px 8px #a259ff22;
     padding: 0;
     vertical-align: middle;
 }
@@ -227,4 +244,34 @@ QSlider::handle:horizontal {
 #SidebarSettingsButton:focus {
     outline: none;
     border: 2px solid #a259ff;
+}
+
+/* Checkpoint dialog styling */
+#RestoreCheckpointButton {
+    background: #a259ff;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 8px;
+}
+#RestoreCheckpointButton:hover {
+    background: #b366ff;
+    color: #fff;
+}
+
+#DialogCloseButton {
+    background: #2d1e3a;
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 8px 20px;
+    font-size: 15px;
+    font-weight: 500;
+}
+#DialogCloseButton:hover {
+    background: #a259ff;
+    color: #fff;
 } 
