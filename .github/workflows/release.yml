@@ -20,10 +20,26 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        echo "Installed packages:"
+        pip list
         
     - name: Build Windows executable
       run: |
+        # Clean up any existing build artifacts
+        Remove-Item -Recurse -Force build, dist, FFMigo.spec -ErrorAction SilentlyContinue
+        echo "Current directory: $(Get-Location)"
+        echo "Directory contents:"
+        Get-ChildItem -Force
+        echo "Building Windows executable..."
         python -m PyInstaller --onefile --windowed --icon=ui/resources/icons/app_logo.png --name=FFMigo --add-data=style.qss;. --add-data=ui/resources/icons;ui/resources/icons --add-data=backend;backend --add-data=ui;ui main.py
+        echo "Build completed. Checking output:"
+        if (Test-Path "dist/FFMigo.exe") {
+          echo "✅ Windows executable created successfully"
+          Get-ChildItem "dist/" -Recurse
+        } else {
+          echo "❌ Windows executable not found"
+          Get-ChildItem "dist/" -ErrorAction SilentlyContinue
+        }
         
     - name: Create Windows installer script
       run: |
@@ -102,10 +118,65 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        echo "Installed packages:"
+        pip list
         
     - name: Build macOS application
       run: |
+        # Clean up any existing build artifacts
+        rm -rf build dist FFMigo.spec
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        echo "Building macOS application..."
         python -m PyInstaller --onedir --windowed --icon=ui/resources/icons/app_logo.png --name=FFMigo --add-data=style.qss:. --add-data=ui/resources/icons:ui/resources/icons --add-data=backend:backend --add-data=ui:ui main.py
+        echo "Build completed. Checking output:"
+        if [ -d "dist/FFMigo" ]; then
+          echo "✅ macOS application created successfully"
+          ls -la dist/
+          ls -la dist/FFMigo/
+          
+          # Create proper .app bundle structure
+          echo "Creating .app bundle..."
+          mkdir -p "dist/FFMigo.app/Contents/MacOS"
+          mkdir -p "dist/FFMigo.app/Contents/Resources"
+          cp -R "dist/FFMigo/"* "dist/FFMigo.app/Contents/MacOS/"
+          cp "ui/resources/icons/app_logo.png" "dist/FFMigo.app/Contents/Resources/"
+          
+          # Create Info.plist
+          cat > "dist/FFMigo.app/Contents/Info.plist" << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>FFMigo</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.ffmigo.app</string>
+              <key>CFBundleName</key>
+              <string>FFMigo</string>
+              <key>CFBundleDisplayName</key>
+              <string>FFMigo</string>
+              <key>CFBundleVersion</key>
+              <string>1.0</string>
+              <key>CFBundleShortVersionString</key>
+              <string>1.0</string>
+              <key>CFBundleIconFile</key>
+              <string>app_logo.png</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>10.14</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+          
+          echo "✅ .app bundle created successfully"
+          ls -la dist/FFMigo.app/Contents/
+        else
+          echo "❌ macOS application not found"
+          ls -la dist/ 2>/dev/null || echo "dist/ directory does not exist"
+        fi
         
     - name: Create macOS installer script
       run: |
@@ -118,10 +189,7 @@ jobs:
         echo 'mkdir -p /Applications' >> install_macos.sh
         echo '' >> install_macos.sh
         echo '# Copy the application' >> install_macos.sh
-        echo 'cp -R "dist/FFMigo" /Applications/' >> install_macos.sh
-        echo '' >> install_macos.sh
-        echo '# Make it executable' >> install_macos.sh
-        echo 'chmod +x /Applications/FFMigo/FFMigo' >> install_macos.sh
+        echo 'cp -R "dist/FFMigo.app" /Applications/' >> install_macos.sh
         echo '' >> install_macos.sh
         echo 'echo "✅ FFMigo has been installed to /Applications/"' >> install_macos.sh
         echo 'echo "🎉 You can now launch FFMigo from your Applications folder!"' >> install_macos.sh
@@ -139,9 +207,8 @@ jobs:
         echo '3. Launch FFMigo from Applications folder' >> DISTRIBUTION_README_macOS.md
         echo '' >> DISTRIBUTION_README_macOS.md
         echo '### Manual Installation' >> DISTRIBUTION_README_macOS.md
-        echo '1. Copy the `FFMigo` folder to your desired location' >> DISTRIBUTION_README_macOS.md
-        echo '2. Make it executable: `chmod +x FFMigo/FFMigo`' >> DISTRIBUTION_README_macOS.md
-        echo '3. Run: `./FFMigo/FFMigo`' >> DISTRIBUTION_README_macOS.md
+        echo '1. Copy the `FFMigo.app` to your desired location' >> DISTRIBUTION_README_macOS.md
+        echo '2. Run: `open FFMigo.app`' >> DISTRIBUTION_README_macOS.md
         echo '' >> DISTRIBUTION_README_macOS.md
         echo '## Requirements' >> DISTRIBUTION_README_macOS.md
         echo '- macOS 10.14 or later' >> DISTRIBUTION_README_macOS.md
@@ -165,7 +232,11 @@ jobs:
         # Install create-dmg
         brew install create-dmg
         
-        # Create DMG
+        # Check what was actually created
+        echo "Contents of dist/ directory:"
+        ls -la dist/
+        
+        # Create DMG - using the .app bundle
         create-dmg \
           --volname "FFMigo" \
           --volicon "ui/resources/icons/app_logo.png" \
@@ -178,12 +249,15 @@ jobs:
           "FFMigo.dmg" \
           "dist/"
         
+        echo "DMG creation completed. Checking result:"
+        ls -la *.dmg 2>/dev/null || echo "No DMG file found"
+        
     - name: Upload macOS artifacts
       uses: actions/upload-artifact@v4
       with:
         name: FFMigo-macOS
         path: |
-          dist/FFMigo
+          dist/FFMigo.app
           FFMigo.dmg
           install_macos.sh
           DISTRIBUTION_README_macOS.md
@@ -211,6 +285,7 @@ jobs:
           windows-artifacts/FFMigo.exe
           windows-artifacts/install_windows.bat
           windows-artifacts/DISTRIBUTION_README_Windows.md
+          macos-artifacts/FFMigo.app
           macos-artifacts/FFMigo.dmg
           macos-artifacts/install_macos.sh
           macos-artifacts/DISTRIBUTION_README_macOS.md
