@@ -131,48 +131,15 @@ jobs:
         echo "Building macOS application..."
         python -m PyInstaller --onedir --windowed --icon=ui/resources/icons/app_logo.png --name=FFMigo --add-data=style.qss:. --add-data=ui/resources/icons:ui/resources/icons --add-data=backend:backend --add-data=ui:ui -y main.py
         echo "Build completed. Checking output:"
-        if [ -d "dist/FFMigo" ]; then
-          echo "✅ macOS application created successfully"
-          ls -la dist/
-          ls -la dist/FFMigo/
-          
-          # Create proper .app bundle structure
-          echo "Creating .app bundle..."
-          mkdir -p "dist/FFMigo.app/Contents/MacOS"
-          mkdir -p "dist/FFMigo.app/Contents/Resources"
-          cp -R "dist/FFMigo/"* "dist/FFMigo.app/Contents/MacOS/"
-          cp "ui/resources/icons/app_logo.png" "dist/FFMigo.app/Contents/Resources/"
-          
-          # Create Info.plist
-          cat > "dist/FFMigo.app/Contents/Info.plist" << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleExecutable</key>
-              <string>FFMigo</string>
-              <key>CFBundleIdentifier</key>
-              <string>com.ffmigo.app</string>
-              <key>CFBundleName</key>
-              <string>FFMigo</string>
-              <key>CFBundleDisplayName</key>
-              <string>FFMigo</string>
-              <key>CFBundleVersion</key>
-              <string>1.0</string>
-              <key>CFBundleShortVersionString</key>
-              <string>1.0</string>
-              <key>CFBundleIconFile</key>
-              <string>app_logo.png</string>
-              <key>LSMinimumSystemVersion</key>
-              <string>10.14</string>
-              <key>NSHighResolutionCapable</key>
-              <true/>
-          </dict>
-          </plist>
-          EOF
-          
-          echo "✅ .app bundle created successfully"
+        echo "Contents of dist/ directory:"
+        ls -la dist/
+        
+        if [ -d "dist/FFMigo.app" ]; then
+          echo "✅ macOS .app bundle created successfully"
           ls -la dist/FFMigo.app/Contents/
+        elif [ -d "dist/FFMigo" ]; then
+          echo "✅ macOS application directory created successfully"
+          ls -la dist/FFMigo/
         else
           echo "❌ macOS application not found"
           ls -la dist/ 2>/dev/null || echo "dist/ directory does not exist"
