@@ -102,6 +102,7 @@ class ProjectSidebar(QWidget):
     rename_project_requested = pyqtSignal(str)
     delete_project_requested = pyqtSignal(str)
     settings_requested = pyqtSignal()  # Add signal for settings
+    help_requested = pyqtSignal()  # Add signal for help
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -148,6 +149,27 @@ class ProjectSidebar(QWidget):
         self.settings_btn.setIconSize(QSize(20, 20))
         self.settings_btn.clicked.connect(self.settings_requested.emit)
         top_row.addWidget(self.settings_btn)
+        
+        # Help/Info button
+        self.help_btn = QPushButton()
+        self.help_btn.setObjectName("SidebarHelpButton")
+        help_icon_path_svg = os.path.join(os.path.dirname(__file__), "resources/icons/help.svg")
+        help_icon_path_png = os.path.join(os.path.dirname(__file__), "resources/icons/help.png")
+        if os.path.exists(help_icon_path_svg):
+            self.help_btn.setIcon(QIcon(help_icon_path_svg))
+        elif os.path.exists(help_icon_path_png):
+            self.help_btn.setIcon(QIcon(help_icon_path_png))
+        else:
+            # Fallback SVG icon for help - matches settings icon design
+            help_svg_data = '''<svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" stroke="#a259ff" stroke-width="2" fill="#2d1e3a"/><path d="M14 8.5a5.5 5.5 0 0 1 5.5 5.5c0 3-2.5 4.5-2.5 4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="19.5" r="1" fill="#fff"/></svg>'''
+            help_pixmap = QPixmap()
+            help_pixmap.loadFromData(bytes(help_svg_data, encoding='utf-8'), "SVG")
+            self.help_btn.setIcon(QIcon(help_pixmap))
+        self.help_btn.setToolTip("About FFMigo")
+        self.help_btn.setFixedSize(32, 32)
+        self.help_btn.setIconSize(QSize(20, 20))
+        self.help_btn.clicked.connect(self.help_requested.emit)
+        top_row.addWidget(self.help_btn)
         
         self.vbox.addLayout(top_row)
         # Scrollable project list
@@ -280,6 +302,7 @@ class MainWindow(QMainWindow):
         self.sidebar.rename_project_requested.connect(self.rename_project)
         self.sidebar.delete_project_requested.connect(self.delete_project)
         self.sidebar.settings_requested.connect(self.open_settings)  # Connect new signal
+        self.sidebar.help_requested.connect(self.open_help)  # Connect help signal
         splitter.addWidget(self.sidebar)
         # Main area widget
         self.main_area = QWidget()
@@ -287,7 +310,7 @@ class MainWindow(QMainWindow):
         self.vbox.setContentsMargins(40, 32, 40, 32)  # Consistent margins for all main content
         self.vbox.setSpacing(24)
         # Large bold heading at the top center
-        heading = QLabel("How can I help you?")
+        heading = QLabel("FFMigo Video Editor")
         heading.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         heading.setStyleSheet("font-size: 32px; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;")
         self.vbox.addWidget(heading)
@@ -389,6 +412,7 @@ class MainWindow(QMainWindow):
         self.chat_input.installEventFilter(self)
         chat_layout.addWidget(self.chat_input, stretch=1)
         self.vbox.addWidget(chat_area, stretch=3)
+        
         # State
         self.project_dir = None
         self.input_path = None
@@ -448,6 +472,140 @@ class MainWindow(QMainWindow):
         dlg = SettingsDialog(self.app_config, self)
         dlg.settings_saved.connect(self.save_settings)
         dlg.exec()
+
+    def open_help(self):
+        """Open the help/about dialog"""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton
+        
+        dlg = QDialog(self)
+        dlg.setWindowTitle("About FFMigo")
+        dlg.setFixedSize(500, 400)
+        dlg.setModal(True)
+        
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(32, 32, 32, 32)
+        layout.setSpacing(24)
+        
+        # App title and version
+        title = QLabel("FFMigo Video Editor")
+        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #a259ff; margin-bottom: 8px;")
+        title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(title)
+        
+        version = QLabel("Version 1.0")
+        version.setStyleSheet("font-size: 14px; color: #888888; margin-bottom: 16px;")
+        version.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(version)
+        
+        # Description
+        desc = QLabel("AI-powered video editing with natural language commands. Transform your videos using simple text descriptions.")
+        desc.setWordWrap(True)
+        desc.setStyleSheet("font-size: 13px; line-height: 1.4; color: #666666; margin-bottom: 24px;")
+        desc.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(desc)
+        
+        # Developer info
+        dev_info = QLabel("Developed by Apurv")
+        dev_info.setStyleSheet("font-size: 14px; font-weight: 600; color: #333333; margin-bottom: 8px;")
+        dev_info.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(dev_info)
+        
+        # Links section
+        links_layout = QHBoxLayout()
+        links_layout.setSpacing(20)
+        links_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        
+        # Twitter link
+        twitter_btn = QPushButton("🐦 Twitter")
+        twitter_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #1DA1F2;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #1a8cd8;
+            }
+        """)
+        twitter_btn.clicked.connect(lambda: self.open_url("https://twitter.com/apurvns"))
+        links_layout.addWidget(twitter_btn)
+        
+        # GitHub link
+        github_btn = QPushButton("📦 GitHub")
+        github_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #333333;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #555555;
+            }
+        """)
+        github_btn.clicked.connect(lambda: self.open_url("https://github.com/apurvns/ffmigo"))
+        links_layout.addWidget(github_btn)
+        
+        # Contributors link
+        contributors_btn = QPushButton("👥 Contributors")
+        contributors_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6C757D;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
+        contributors_btn.clicked.connect(lambda: self.open_url("https://github.com/apurvns/ffmigo/graphs/contributors"))
+        links_layout.addWidget(contributors_btn)
+        
+        layout.addLayout(links_layout)
+        
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #a259ff;
+                color: white;
+                border: none;
+                padding: 10px 24px;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #8a4fd8;
+            }
+        """)
+        close_btn.clicked.connect(dlg.accept)
+        close_btn.setFixedWidth(120)
+        
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch(1)
+        btn_layout.addWidget(close_btn)
+        btn_layout.addStretch(1)
+        layout.addLayout(btn_layout)
+        
+        dlg.exec()
+
+    def open_url(self, url):
+        """Open URL in default browser"""
+        from PyQt6.QtCore import QUrl
+        from PyQt6.QtGui import QDesktopServices
+        QDesktopServices.openUrl(QUrl(url))
 
     def open_checkpoints(self):
         """Open the checkpoint dialog"""

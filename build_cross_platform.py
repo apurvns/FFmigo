@@ -34,12 +34,24 @@ def build_for_platform():
         "--windowed",
         "--icon=ui/resources/icons/app_logo.png",
         "--name=FFMigo",
-        "--add-data=style.qss:.",
-        "--add-data=ui/resources/icons:ui/resources/icons",
-        "--add-data=backend:backend",
-        "--add-data=ui:ui",
         "main.py"
     ]
+    
+    # Platform-specific data paths
+    if current_platform == "Darwin":  # macOS
+        cmd.extend([
+            "--add-data=style.qss:.",
+            "--add-data=ui/resources/icons:ui/resources/icons",
+            "--add-data=backend:backend",
+            "--add-data=ui:ui"
+        ])
+    elif current_platform == "Windows":
+        cmd.extend([
+            "--add-data=style.qss;.",
+            "--add-data=ui/resources/icons;ui/resources/icons",
+            "--add-data=backend;backend",
+            "--add-data=ui;ui"
+        ])
     
     # Platform-specific options
     if current_platform == "Darwin":  # macOS

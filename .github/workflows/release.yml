@@ -31,7 +31,7 @@ jobs:
         echo "Directory contents:"
         Get-ChildItem -Force
         echo "Building Windows executable..."
-        python -m PyInstaller --onefile --windowed --icon=ui/resources/icons/app_logo.png --name=FFMigo --add-data=style.qss:. --add-data=ui/resources/icons:ui/resources/icons --add-data=backend:backend --add-data=ui:ui -y main.py
+        python -m PyInstaller --onefile --windowed --icon=ui/resources/icons/app_logo.png --name=FFMigo --add-data=style.qss;. --add-data=ui/resources/icons;ui/resources/icons --add-data=backend;backend --add-data=ui;ui -y main.py
         echo "Build completed. Checking output:"
         if (Test-Path "dist/FFMigo.exe") {
           echo "✅ Windows executable created successfully"

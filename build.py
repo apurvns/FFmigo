@@ -94,19 +94,35 @@ exe = EXE(
     
     # Build the application
     print("🔨 Building executable...")
-    result = subprocess.run([
+    
+    # Platform-specific data paths
+    import platform
+    cmd = [
         sys.executable, "-m", "PyInstaller", 
         "--clean", 
         "--onefile", 
         "--windowed",  # No console window
         "--icon=ui/resources/icons/app_logo.png",
         "--name=FFMigo",
-        "--add-data=style.qss:.",
-        "--add-data=ui/resources/icons:ui/resources/icons",
-        "--add-data=backend:backend",
-        "--add-data=ui:ui",
         "main.py"
-    ], capture_output=True, text=True)
+    ]
+    
+    if platform.system() == "Windows":
+        cmd.extend([
+            "--add-data=style.qss;.",
+            "--add-data=ui/resources/icons;ui/resources/icons",
+            "--add-data=backend;backend",
+            "--add-data=ui;ui"
+        ])
+    else:  # macOS and Linux
+        cmd.extend([
+            "--add-data=style.qss:.",
+            "--add-data=ui/resources/icons:ui/resources/icons",
+            "--add-data=backend:backend",
+            "--add-data=ui:ui"
+        ])
+    
+    result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode == 0:
         print("✅ Build completed successfully!")

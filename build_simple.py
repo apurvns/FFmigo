@@ -32,12 +32,25 @@ def build():
         "--windowed",
         "--icon=ui/resources/icons/app_logo.png",
         "--name=FFMigo",
-        "--add-data=style.qss:.",
-        "--add-data=ui/resources/icons:ui/resources/icons",
-        "--add-data=backend:backend",
-        "--add-data=ui:ui",
         "main.py"
     ]
+    
+    # Platform-specific data paths
+    import platform
+    if platform.system() == "Windows":
+        cmd.extend([
+            "--add-data=style.qss;.",
+            "--add-data=ui/resources/icons;ui/resources/icons",
+            "--add-data=backend;backend",
+            "--add-data=ui;ui"
+        ])
+    else:  # macOS and Linux
+        cmd.extend([
+            "--add-data=style.qss:.",
+            "--add-data=ui/resources/icons:ui/resources/icons",
+            "--add-data=backend:backend",
+            "--add-data=ui:ui"
+        ])
     
     print("🔨 Running:", " ".join(cmd))
     result = subprocess.run(cmd)
