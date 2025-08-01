@@ -299,11 +299,25 @@ jobs:
           windows-artifacts/dist/FFMigo.exe
           windows-artifacts/install_windows.bat
           windows-artifacts/DISTRIBUTION_README.md
-          macos-artifacts/dist/FFMigo/
+          macos-artifacts/dist/FFMigo/FFMigo
           macos-artifacts/FFMigo.dmg
           macos-artifacts/install_macos.sh
           macos-artifacts/DISTRIBUTION_README.md
         draft: false
         prerelease: false
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Debug - Show what files were actually uploaded
+      run: |
+        echo "=== Files that should have been uploaded ==="
+        echo "Windows files:"
+        echo "- windows-artifacts/dist/FFMigo.exe"
+        echo "- windows-artifacts/install_windows.bat"
+        echo "- windows-artifacts/DISTRIBUTION_README.md"
+        echo ""
+        echo "macOS files:"
+        echo "- macos-artifacts/dist/FFMigo/FFMigo"
+        echo "- macos-artifacts/FFMigo.dmg"
+        echo "- macos-artifacts/install_macos.sh"
+        echo "- macos-artifacts/DISTRIBUTION_README.md" 
