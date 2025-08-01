@@ -9,21 +9,21 @@ import sys
 import os
 
 def build_windows():
-    print("🪟 Building FFMigo for Windows...")
+    print("Building FFMigo for Windows...")
     
     # Install dependencies
     try:
         import PyInstaller
-        print("✅ PyInstaller is already installed")
+        print("PyInstaller is already installed")
     except ImportError:
-        print("📦 Installing PyInstaller...")
+        print("Installing PyInstaller...")
         subprocess.run([sys.executable, "-m", "pip", "install", "pyinstaller"], check=True)
     
     try:
         import PIL
-        print("✅ Pillow is already installed")
+        print("Pillow is already installed")
     except ImportError:
-        print("📦 Installing Pillow...")
+        print("Installing Pillow...")
         subprocess.run([sys.executable, "-m", "pip", "install", "pillow"], check=True)
     
     # Windows build command
@@ -40,20 +40,20 @@ def build_windows():
         "main.py"
     ]
     
-    print("🔨 Running:", " ".join(cmd))
+    print("Running:", " ".join(cmd))
     result = subprocess.run(cmd)
     
     if result.returncode == 0:
-        print("✅ Windows build successful!")
-        print("📁 Executable: dist/FFMigo.exe")
-        print("💡 Test it: dist/FFMigo.exe")
-        print("📦 Distribute the 'FFMigo.exe' file to Windows users")
+        print("Windows build successful!")
+        print("Executable: dist/FFMigo.exe")
+        print("Test it: dist/FFMigo.exe")
+        print("Distribute the 'FFMigo.exe' file to Windows users")
         
         # Create Windows installer
         create_windows_installer()
         
     else:
-        print("❌ Windows build failed!")
+        print("Windows build failed!")
 
 def create_windows_installer():
     """Create a Windows installer script"""
@@ -84,7 +84,7 @@ pause
     with open("install_windows.bat", "w") as f:
         f.write(installer_content)
     
-    print("📝 Created Windows installer: install_windows.bat")
+    print("Created Windows installer: install_windows.bat")
 
 if __name__ == "__main__":
     build_windows() 

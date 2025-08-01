@@ -11,22 +11,22 @@ import platform
 
 def install_dependencies():
     """Install required packages for building"""
-    print("📦 Installing build dependencies...")
+    print("Installing build dependencies...")
     
     packages = ["pyinstaller", "pillow"]
     
     for package in packages:
         try:
             __import__(package.replace("-", "_"))
-            print(f"✅ {package} is already installed")
+            print(f"{package} is already installed")
         except ImportError:
-            print(f"📦 Installing {package}...")
+            print(f"Installing {package}...")
             subprocess.run([sys.executable, "-m", "pip", "install", package], check=True)
 
 def build_for_platform():
     """Build for the current platform"""
     current_platform = platform.system()
-    print(f"🔨 Building for {current_platform}...")
+    print(f"Building for {current_platform}...")
     
     # Base command
     cmd = [
@@ -56,32 +56,32 @@ def build_for_platform():
     # Platform-specific options
     if current_platform == "Darwin":  # macOS
         cmd.insert(3, "--onedir")  # Use onedir for macOS
-        print("🍎 Building macOS application...")
+        print("Building macOS application...")
     elif current_platform == "Windows":
         cmd.insert(3, "--onefile")  # Use onefile for Windows
-        print("🪟 Building Windows executable...")
+        print("Building Windows executable...")
     else:
-        print(f"⚠️  Unsupported platform: {current_platform}")
+        print(f"Unsupported platform: {current_platform}")
         return False
     
-    print("🔨 Running:", " ".join(cmd))
+    print("Running:", " ".join(cmd))
     result = subprocess.run(cmd)
     
     if result.returncode == 0:
-        print("✅ Build successful!")
+        print("Build successful!")
         
         if current_platform == "Darwin":
-            print("📁 macOS App: dist/FFMigo/")
-            print("💡 Test it: ./dist/FFMigo/FFMigo")
-            print("📦 Distribute the entire 'dist/FFMigo' folder")
+            print("macOS App: dist/FFMigo/")
+            print("Test it: ./dist/FFMigo/FFMigo")
+            print("Distribute the entire 'dist/FFMigo' folder")
         elif current_platform == "Windows":
-            print("📁 Windows Executable: dist/FFMigo.exe")
-            print("💡 Test it: dist/FFMigo.exe")
-            print("📦 Distribute the 'FFMigo.exe' file")
+            print("Windows Executable: dist/FFMigo.exe")
+            print("Test it: dist/FFMigo.exe")
+            print("Distribute the 'FFMigo.exe' file")
         
         return True
     else:
-        print("❌ Build failed!")
+        print("Build failed!")
         return False
 
 def create_installer_scripts():
@@ -93,7 +93,7 @@ def create_installer_scripts():
         mac_installer = '''#!/bin/bash
 # FFMigo Installer for macOS
 
-echo "🚀 Installing FFMigo..."
+echo "Installing FFMigo..."
 
 # Create Applications directory if it doesn't exist
 mkdir -p /Applications
@@ -104,21 +104,21 @@ cp -R "dist/FFMigo" /Applications/
 # Make it executable
 chmod +x /Applications/FFMigo/FFMigo
 
-echo "✅ FFMigo has been installed to /Applications/"
-echo "🎉 You can now launch FFMigo from your Applications folder!"
+echo "FFMigo has been installed to /Applications/"
+echo "You can now launch FFMigo from your Applications folder!"
 '''
         
         with open("install_macos.sh", "w") as f:
             f.write(mac_installer)
         os.chmod("install_macos.sh", 0o755)
-        print("📝 Created macOS installer: install_macos.sh")
+        print("Created macOS installer: install_macos.sh")
         
     elif current_platform == "Windows":
         # Windows installer script (batch file)
         win_installer = '''@echo off
 REM FFMigo Installer for Windows
 
-echo 🚀 Installing FFMigo...
+echo Installing FFMigo...
 
 REM Create Program Files directory if it doesn't exist
 if not exist "C:\\Program Files\\FFMigo" mkdir "C:\\Program Files\\FFMigo"
@@ -130,14 +130,14 @@ REM Create desktop shortcut
 echo Creating desktop shortcut...
 powershell "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%USERPROFILE%\\Desktop\\FFMigo.lnk'); $Shortcut.TargetPath = 'C:\\Program Files\\FFMigo\\FFMigo.exe'; $Shortcut.Save()"
 
-echo ✅ FFMigo has been installed to C:\Program Files\FFMigo\
-echo 🎉 You can now launch FFMigo from your Desktop or Start Menu!
+echo FFMigo has been installed to C:\Program Files\FFMigo\
+echo You can now launch FFMigo from your Desktop or Start Menu!
 pause
 '''
         
         with open("install_windows.bat", "w") as f:
             f.write(win_installer)
-        print("📝 Created Windows installer: install_windows.bat")
+        print("Created Windows installer: install_windows.bat")
 
 def create_distribution_readme():
     """Create a README for distribution"""
@@ -214,8 +214,8 @@ def create_distribution_readme():
 
 def main():
     """Main build function"""
-    print("🚀 FFMigo Cross-Platform Build System")
-    print(f"📋 Platform: {platform.system()} {platform.release()}")
+    print("FFMigo Cross-Platform Build System")
+    print(f"Platform: {platform.system()} {platform.release()}")
     
     try:
         # Install dependencies
@@ -231,26 +231,26 @@ def main():
             # Create distribution README
             create_distribution_readme()
             
-            print("\n🎉 Build completed successfully!")
-            print("📦 Your application is ready for distribution!")
+            print("\nBuild completed successfully!")
+            print("Your application is ready for distribution!")
             
             current_platform = platform.system()
             if current_platform == "Darwin":
-                print("\n🎯 Next steps:")
+                print("\nNext steps:")
                 print("1. Test: ./dist/FFMigo/FFMigo")
                 print("2. Install: ./install_macos.sh")
                 print("3. Distribute the 'dist/FFMigo' folder")
             elif current_platform == "Windows":
-                print("\n🎯 Next steps:")
+                print("\nNext steps:")
                 print("1. Test: dist/FFMigo.exe")
                 print("2. Install: install_windows.bat")
                 print("3. Distribute the 'FFMigo.exe' file")
         else:
-            print("❌ Build failed. Check the error messages above.")
+            print("Build failed. Check the error messages above.")
             sys.exit(1)
             
     except Exception as e:
-        print(f"❌ Build error: {e}")
+        print(f"Build error: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
