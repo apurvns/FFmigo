@@ -90,7 +90,7 @@ exe = EXE(
     with open("FFMigo.spec", "w") as f:
         f.write(spec_content)
     
-    print("📋 Created PyInstaller spec file")
+    print("Created PyInstaller spec file")
     
     # Build the application
     print("🔨 Building executable...")
