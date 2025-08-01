@@ -108,6 +108,18 @@ jobs:
           echo '- For LLM issues, ensure your local LLM server is running' >> DISTRIBUTION_README.md
         }
         
+    - name: Debug - List files before Windows upload
+      run: |
+        echo "=== Files to be uploaded for Windows ==="
+        echo "Checking dist/FFMigo.exe:"
+        ls -la dist/FFMigo.exe 2>/dev/null || echo "dist/FFMigo.exe NOT FOUND"
+        echo "Checking install_windows.bat:"
+        ls -la install_windows.bat 2>/dev/null || echo "install_windows.bat NOT FOUND"
+        echo "Checking DISTRIBUTION_README.md:"
+        ls -la DISTRIBUTION_README.md 2>/dev/null || echo "DISTRIBUTION_README.md NOT FOUND"
+        echo "=== All files in current directory ==="
+        ls -la
+        
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -219,6 +231,20 @@ jobs:
         echo "DMG creation completed. Checking result:"
         ls -la *.dmg 2>/dev/null || echo "No DMG file found"
         
+    - name: Debug - List files before macOS upload
+      run: |
+        echo "=== Files to be uploaded for macOS ==="
+        echo "Checking dist/FFMigo/:"
+        ls -la dist/FFMigo/ 2>/dev/null || echo "dist/FFMigo/ NOT FOUND"
+        echo "Checking FFMigo.dmg:"
+        ls -la FFMigo.dmg 2>/dev/null || echo "FFMigo.dmg NOT FOUND"
+        echo "Checking install_macos.sh:"
+        ls -la install_macos.sh 2>/dev/null || echo "install_macos.sh NOT FOUND"
+        echo "Checking DISTRIBUTION_README.md:"
+        ls -la DISTRIBUTION_README.md 2>/dev/null || echo "DISTRIBUTION_README.md NOT FOUND"
+        echo "=== All files in current directory ==="
+        ls -la
+        
     - name: Upload macOS artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -256,15 +282,24 @@ jobs:
         echo ""
         echo "=== Current Directory ==="
         ls -la
+        echo ""
+        echo "=== Find all files recursively ==="
+        find . -name "FFMigo*" -type f 2>/dev/null || echo "No FFMigo files found"
+        echo ""
+        echo "=== Find all .exe files ==="
+        find . -name "*.exe" 2>/dev/null || echo "No .exe files found"
+        echo ""
+        echo "=== Find all directories ==="
+        find . -name "FFMigo" -type d 2>/dev/null || echo "No FFMigo directories found"
         
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          windows-artifacts/FFMigo.exe
+          windows-artifacts/dist/FFMigo.exe
           windows-artifacts/install_windows.bat
           windows-artifacts/DISTRIBUTION_README.md
-          macos-artifacts/FFMigo/
+          macos-artifacts/dist/FFMigo/
           macos-artifacts/FFMigo.dmg
           macos-artifacts/install_macos.sh
           macos-artifacts/DISTRIBUTION_README.md
