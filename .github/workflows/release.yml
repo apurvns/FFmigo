@@ -112,13 +112,13 @@ jobs:
       run: |
         echo "=== Files to be uploaded for Windows ==="
         echo "Checking dist/FFMigo.exe:"
-        ls -la dist/FFMigo.exe 2>/dev/null || echo "dist/FFMigo.exe NOT FOUND"
+        if (Test-Path "dist/FFMigo.exe") { Get-ChildItem "dist/FFMigo.exe" } else { echo "dist/FFMigo.exe NOT FOUND" }
         echo "Checking install_windows.bat:"
-        ls -la install_windows.bat 2>/dev/null || echo "install_windows.bat NOT FOUND"
+        if (Test-Path "install_windows.bat") { Get-ChildItem "install_windows.bat" } else { echo "install_windows.bat NOT FOUND" }
         echo "Checking DISTRIBUTION_README.md:"
-        ls -la DISTRIBUTION_README.md 2>/dev/null || echo "DISTRIBUTION_README.md NOT FOUND"
+        if (Test-Path "DISTRIBUTION_README.md") { Get-ChildItem "DISTRIBUTION_README.md" } else { echo "DISTRIBUTION_README.md NOT FOUND" }
         echo "=== All files in current directory ==="
-        ls -la
+        Get-ChildItem
         
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@v4
