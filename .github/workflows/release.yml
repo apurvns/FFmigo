@@ -41,58 +41,72 @@ jobs:
           Get-ChildItem "dist/" -ErrorAction SilentlyContinue
         }
         
-    - name: Create Windows installer script
-      run: |
-        echo '@echo off' > install_windows.bat
-        echo 'REM FFMigo Installer for Windows' >> install_windows.bat
-        echo '' >> install_windows.bat
-        echo 'echo 🚀 Installing FFMigo...' >> install_windows.bat
-        echo '' >> install_windows.bat
-        echo 'REM Create Program Files directory if it doesn''t exist' >> install_windows.bat
-        echo 'if not exist "C:\Program Files\FFMigo" mkdir "C:\Program Files\FFMigo"' >> install_windows.bat
-        echo '' >> install_windows.bat
-        echo 'REM Copy the application' >> install_windows.bat
-        echo 'xcopy "dist\FFMigo.exe" "C:\Program Files\FFMigo\" /Y' >> install_windows.bat
-        echo '' >> install_windows.bat
-        echo 'REM Create desktop shortcut' >> install_windows.bat
-        echo 'echo Creating desktop shortcut...' >> install_windows.bat
-        echo 'powershell "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut(''%%USERPROFILE%%\Desktop\FFMigo.lnk''); $Shortcut.TargetPath = ''C:\Program Files\FFMigo\FFMigo.exe''; $Shortcut.Save()"' >> install_windows.bat
-        echo '' >> install_windows.bat
-        echo 'echo ✅ FFMigo has been installed to C:\Program Files\FFMigo\' >> install_windows.bat
-        echo 'echo 🎉 You can now launch FFMigo from your Desktop or Start Menu!' >> install_windows.bat
-        echo 'pause' >> install_windows.bat
+        echo "=== Final check before upload ==="
+        echo "Files in dist/:"
+        Get-ChildItem "dist/" -Recurse
+        echo "Files in current directory:"
+        Get-ChildItem
+        echo "Checking if install_windows.bat exists:"
+        Test-Path "install_windows.bat"
+        echo "Checking if DISTRIBUTION_README_Windows.md exists:"
+        Test-Path "DISTRIBUTION_README_Windows.md"
         
-    - name: Create Windows README
+    - name: Create Windows installer script (if not created by build script)
       run: |
-        echo '# FFMigo for Windows' > DISTRIBUTION_README_Windows.md
-        echo '' >> DISTRIBUTION_README_Windows.md
-        echo '## Installation' >> DISTRIBUTION_README_Windows.md
-        echo '' >> DISTRIBUTION_README_Windows.md
-        echo '### Automatic Installation' >> DISTRIBUTION_README_Windows.md
-        echo '1. Download the FFMigo executable' >> DISTRIBUTION_README_Windows.md
-        echo '2. Run: `install_windows.bat`' >> DISTRIBUTION_README_Windows.md
-        echo '3. Launch FFMigo from Desktop or Start Menu' >> DISTRIBUTION_README_Windows.md
-        echo '' >> DISTRIBUTION_README_Windows.md
-        echo '### Manual Installation' >> DISTRIBUTION_README_Windows.md
-        echo '1. Copy `FFMigo.exe` to your desired location' >> DISTRIBUTION_README_Windows.md
-        echo '2. Run: `FFMigo.exe`' >> DISTRIBUTION_README_Windows.md
-        echo '' >> DISTRIBUTION_README_Windows.md
-        echo '## Requirements' >> DISTRIBUTION_README_Windows.md
-        echo '- Windows 10 or later' >> DISTRIBUTION_README_Windows.md
-        echo '- FFmpeg installed on the system' >> DISTRIBUTION_README_Windows.md
-        echo '- Local LLM server (Ollama, LM Studio, etc.)' >> DISTRIBUTION_README_Windows.md
-        echo '' >> DISTRIBUTION_README_Windows.md
-        echo '## Features' >> DISTRIBUTION_README_Windows.md
-        echo '- Drag-and-drop video loading' >> DISTRIBUTION_README_Windows.md
-        echo '- Natural language video editing commands' >> DISTRIBUTION_README_Windows.md
-        echo '- LLM integration for AI-powered editing' >> DISTRIBUTION_README_Windows.md
-        echo '- Processed video preview and export' >> DISTRIBUTION_README_Windows.md
-        echo '- Custom application icon' >> DISTRIBUTION_README_Windows.md
-        echo '' >> DISTRIBUTION_README_Windows.md
-        echo '## Troubleshooting' >> DISTRIBUTION_README_Windows.md
-        echo '- If FFmpeg is not found, download from https://ffmpeg.org/' >> DISTRIBUTION_README_Windows.md
-        echo '- Add FFmpeg to your system PATH' >> DISTRIBUTION_README_Windows.md
-        echo '- For LLM issues, ensure your local LLM server is running' >> DISTRIBUTION_README_Windows.md
+        if (-not (Test-Path "install_windows.bat")) {
+          echo '@echo off' > install_windows.bat
+          echo 'REM FFMigo Installer for Windows' >> install_windows.bat
+          echo '' >> install_windows.bat
+          echo 'echo Installing FFMigo...' >> install_windows.bat
+          echo '' >> install_windows.bat
+          echo 'REM Create Program Files directory if it doesn''t exist' >> install_windows.bat
+          echo 'if not exist "C:\Program Files\FFMigo" mkdir "C:\Program Files\FFMigo"' >> install_windows.bat
+          echo '' >> install_windows.bat
+          echo 'REM Copy the application' >> install_windows.bat
+          echo 'xcopy "dist\FFMigo.exe" "C:\Program Files\FFMigo\" /Y' >> install_windows.bat
+          echo '' >> install_windows.bat
+          echo 'REM Create desktop shortcut' >> install_windows.bat
+          echo 'echo Creating desktop shortcut...' >> install_windows.bat
+          echo 'powershell "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut(''%%USERPROFILE%%\Desktop\FFMigo.lnk''); $Shortcut.TargetPath = ''C:\Program Files\FFMigo\FFMigo.exe''; $Shortcut.Save()"' >> install_windows.bat
+          echo '' >> install_windows.bat
+          echo 'echo FFMigo has been installed to C:\Program Files\FFMigo\' >> install_windows.bat
+          echo 'echo You can now launch FFMigo from your Desktop or Start Menu!' >> install_windows.bat
+          echo 'pause' >> install_windows.bat
+        }
+        
+    - name: Create Windows README (if not created by build script)
+      run: |
+        if (-not (Test-Path "DISTRIBUTION_README.md")) {
+          echo '# FFMigo for Windows' > DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '## Installation' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '### Automatic Installation' >> DISTRIBUTION_README.md
+          echo '1. Download the FFMigo executable' >> DISTRIBUTION_README.md
+          echo '2. Run: `install_windows.bat`' >> DISTRIBUTION_README.md
+          echo '3. Launch FFMigo from Desktop or Start Menu' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '### Manual Installation' >> DISTRIBUTION_README.md
+          echo '1. Copy `FFMigo.exe` to your desired location' >> DISTRIBUTION_README.md
+          echo '2. Run: `FFMigo.exe`' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '## Requirements' >> DISTRIBUTION_README.md
+          echo '- Windows 10 or later' >> DISTRIBUTION_README.md
+          echo '- FFmpeg installed on the system' >> DISTRIBUTION_README.md
+          echo '- Local LLM server (Ollama, LM Studio, etc.)' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '## Features' >> DISTRIBUTION_README.md
+          echo '- Drag-and-drop video loading' >> DISTRIBUTION_README.md
+          echo '- Natural language video editing commands' >> DISTRIBUTION_README.md
+          echo '- LLM integration for AI-powered editing' >> DISTRIBUTION_README.md
+          echo '- Processed video preview and export' >> DISTRIBUTION_README.md
+          echo '- Custom application icon' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '## Troubleshooting' >> DISTRIBUTION_README.md
+          echo '- If FFmpeg is not found, download from https://ffmpeg.org/' >> DISTRIBUTION_README.md
+          echo '- Add FFmpeg to your system PATH' >> DISTRIBUTION_README.md
+          echo '- For LLM issues, ensure your local LLM server is running' >> DISTRIBUTION_README.md
+        }
         
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@v4
@@ -101,7 +115,8 @@ jobs:
         path: |
           dist/FFMigo.exe
           install_windows.bat
-          DISTRIBUTION_README_Windows.md
+          DISTRIBUTION_README.md
+        retention-days: 1
 
   build-macos:
     runs-on: macos-latest
@@ -127,44 +142,57 @@ jobs:
         echo "Building macOS application..."
         python build_cross_platform.py
         echo "Build completed successfully!"
+        echo "=== Final check before upload ==="
+        echo "Files in dist/:"
+        ls -la dist/
+        echo "Files in current directory:"
+        ls -la
+        echo "Checking if install_macos.sh exists:"
+        ls -la install_macos.sh 2>/dev/null || echo "install_macos.sh not found"
+        echo "Checking if DISTRIBUTION_README_macOS.md exists:"
+        ls -la DISTRIBUTION_README_macOS.md 2>/dev/null || echo "DISTRIBUTION_README_macOS.md not found"
         
-    - name: Create macOS installer script
+    - name: Create macOS installer script (if not created by build script)
       run: |
-        echo '#!/bin/bash' > install_macos.sh
-        echo 'cp -R dist/FFMigo.app /Applications/' >> install_macos.sh
-        chmod +x install_macos.sh
+        if [ ! -f "install_macos.sh" ]; then
+          echo '#!/bin/bash' > install_macos.sh
+          echo 'cp -R dist/FFMigo /Applications/' >> install_macos.sh
+          chmod +x install_macos.sh
+        fi
         
-    - name: Create macOS README
+    - name: Create macOS README (if not created by build script)
       run: |
-        echo '# FFMigo for macOS' > DISTRIBUTION_README_macOS.md
-        echo '' >> DISTRIBUTION_README_macOS.md
-        echo '## Installation' >> DISTRIBUTION_README_macOS.md
-        echo '' >> DISTRIBUTION_README_macOS.md
-        echo '### Automatic Installation' >> DISTRIBUTION_README_macOS.md
-        echo '1. Download the FFMigo application' >> DISTRIBUTION_README_macOS.md
-        echo '2. Run: `./install_macos.sh`' >> DISTRIBUTION_README_macOS.md
-        echo '3. Launch FFMigo from Applications folder' >> DISTRIBUTION_README_macOS.md
-        echo '' >> DISTRIBUTION_README_macOS.md
-        echo '### Manual Installation' >> DISTRIBUTION_README_macOS.md
-        echo '1. Copy the `FFMigo` folder to your desired location' >> DISTRIBUTION_README_macOS.md
-        echo '2. Run: `./FFMigo/FFMigo`' >> DISTRIBUTION_README_macOS.md
-        echo '' >> DISTRIBUTION_README_macOS.md
-        echo '## Requirements' >> DISTRIBUTION_README_macOS.md
-        echo '- macOS 10.14 or later' >> DISTRIBUTION_README_macOS.md
-        echo '- FFmpeg installed on the system' >> DISTRIBUTION_README_macOS.md
-        echo '- Local LLM server (Ollama, LM Studio, etc.)' >> DISTRIBUTION_README_macOS.md
-        echo '' >> DISTRIBUTION_README_macOS.md
-        echo '## Features' >> DISTRIBUTION_README_macOS.md
-        echo '- Drag-and-drop video loading' >> DISTRIBUTION_README_macOS.md
-        echo '- Natural language video editing commands' >> DISTRIBUTION_README_macOS.md
-        echo '- LLM integration for AI-powered editing' >> DISTRIBUTION_README_macOS.md
-        echo '- Processed video preview and export' >> DISTRIBUTION_README_macOS.md
-        echo '- Custom application icon' >> DISTRIBUTION_README_macOS.md
-        echo '' >> DISTRIBUTION_README_macOS.md
-        echo '## Troubleshooting' >> DISTRIBUTION_README_macOS.md
-        echo '- If FFmpeg is not found, install it: `brew install ffmpeg`' >> DISTRIBUTION_README_macOS.md
-        echo '- If the app doesn''t start, check that FFmpeg is in your PATH' >> DISTRIBUTION_README_macOS.md
-        echo '- For LLM issues, ensure your local LLM server is running' >> DISTRIBUTION_README_macOS.md
+        if [ ! -f "DISTRIBUTION_README.md" ]; then
+          echo '# FFMigo for macOS' > DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '## Installation' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '### Automatic Installation' >> DISTRIBUTION_README.md
+          echo '1. Download the FFMigo application' >> DISTRIBUTION_README.md
+          echo '2. Run: `./install_macos.sh`' >> DISTRIBUTION_README.md
+          echo '3. Launch FFMigo from Applications folder' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '### Manual Installation' >> DISTRIBUTION_README.md
+          echo '1. Copy the `FFMigo` folder to your desired location' >> DISTRIBUTION_README.md
+          echo '2. Run: `./FFMigo/FFMigo`' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '## Requirements' >> DISTRIBUTION_README.md
+          echo '- macOS 10.14 or later' >> DISTRIBUTION_README.md
+          echo '- FFmpeg installed on the system' >> DISTRIBUTION_README.md
+          echo '- Local LLM server (Ollama, LM Studio, etc.)' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '## Features' >> DISTRIBUTION_README.md
+          echo '- Drag-and-drop video loading' >> DISTRIBUTION_README.md
+          echo '- Natural language video editing commands' >> DISTRIBUTION_README.md
+          echo '- LLM integration for AI-powered editing' >> DISTRIBUTION_README.md
+          echo '- Processed video preview and export' >> DISTRIBUTION_README.md
+          echo '- Custom application icon' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '## Troubleshooting' >> DISTRIBUTION_README.md
+          echo '- If FFmpeg is not found, install it: `brew install ffmpeg`' >> DISTRIBUTION_README.md
+          echo '- If the app doesn''t start, check that FFmpeg is in your PATH' >> DISTRIBUTION_README.md
+          echo '- For LLM issues, ensure your local LLM server is running' >> DISTRIBUTION_README.md
+        fi
         
     - name: Create DMG file
       run: |
@@ -199,7 +227,8 @@ jobs:
           dist/FFMigo/
           FFMigo.dmg
           install_macos.sh
-          DISTRIBUTION_README_macOS.md
+          DISTRIBUTION_README.md
+        retention-days: 1
 
   create-release:
     needs: [build-windows, build-macos]
@@ -217,17 +246,28 @@ jobs:
         name: FFMigo-macOS
         path: macos-artifacts
         
+    - name: Debug - List downloaded files
+      run: |
+        echo "=== Windows Artifacts ==="
+        ls -la windows-artifacts/ 2>/dev/null || echo "No windows-artifacts directory"
+        echo ""
+        echo "=== macOS Artifacts ==="
+        ls -la macos-artifacts/ 2>/dev/null || echo "No macos-artifacts directory"
+        echo ""
+        echo "=== Current Directory ==="
+        ls -la
+        
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
           windows-artifacts/FFMigo.exe
           windows-artifacts/install_windows.bat
-          windows-artifacts/DISTRIBUTION_README_Windows.md
+          windows-artifacts/DISTRIBUTION_README.md
           macos-artifacts/FFMigo/
           macos-artifacts/FFMigo.dmg
           macos-artifacts/install_macos.sh
-          macos-artifacts/DISTRIBUTION_README_macOS.md
+          macos-artifacts/DISTRIBUTION_README.md
         draft: false
         prerelease: false
       env:
