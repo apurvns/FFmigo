@@ -146,8 +146,8 @@ jobs:
         echo '3. Launch FFMigo from Applications folder' >> DISTRIBUTION_README_macOS.md
         echo '' >> DISTRIBUTION_README_macOS.md
         echo '### Manual Installation' >> DISTRIBUTION_README_macOS.md
-        echo '1. Copy the `FFMigo.app` to your desired location' >> DISTRIBUTION_README_macOS.md
-        echo '2. Run: `open FFMigo.app`' >> DISTRIBUTION_README_macOS.md
+        echo '1. Copy the `FFMigo` folder to your desired location' >> DISTRIBUTION_README_macOS.md
+        echo '2. Run: `./FFMigo/FFMigo`' >> DISTRIBUTION_README_macOS.md
         echo '' >> DISTRIBUTION_README_macOS.md
         echo '## Requirements' >> DISTRIBUTION_README_macOS.md
         echo '- macOS 10.14 or later' >> DISTRIBUTION_README_macOS.md
@@ -175,15 +175,15 @@ jobs:
         echo "Contents of dist/ directory:"
         ls -la dist/
         
-        # Create DMG - using the .app bundle
+        # Create DMG - using the directory structure
         create-dmg \
           --volname "FFMigo" \
           --volicon "ui/resources/icons/app_logo.png" \
           --window-pos 200 120 \
           --window-size 600 400 \
           --icon-size 100 \
-          --icon "FFMigo.app" 175 120 \
-          --hide-extension "FFMigo.app" \
+          --icon "FFMigo" 175 120 \
+          --hide-extension "FFMigo" \
           --app-drop-link 425 120 \
           "FFMigo.dmg" \
           "dist/"
@@ -196,7 +196,7 @@ jobs:
       with:
         name: FFMigo-macOS
         path: |
-          dist/FFMigo.app
+          dist/FFMigo/
           FFMigo.dmg
           install_macos.sh
           DISTRIBUTION_README_macOS.md
@@ -224,7 +224,7 @@ jobs:
           windows-artifacts/FFMigo.exe
           windows-artifacts/install_windows.bat
           windows-artifacts/DISTRIBUTION_README_Windows.md
-          macos-artifacts/FFMigo.app
+          macos-artifacts/FFMigo/
           macos-artifacts/FFMigo.dmg
           macos-artifacts/install_macos.sh
           macos-artifacts/DISTRIBUTION_README_macOS.md
