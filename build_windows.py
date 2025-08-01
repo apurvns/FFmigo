@@ -60,7 +60,7 @@ def create_windows_installer():
     installer_content = '''@echo off
 REM FFMigo Windows Installer
 
-echo 🚀 Installing FFMigo...
+echo Installing FFMigo...
 
 REM Create Program Files directory
 if not exist "C:\\Program Files\\FFMigo" mkdir "C:\\Program Files\\FFMigo"
@@ -76,8 +76,8 @@ REM Create start menu shortcut
 if not exist "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\FFMigo" mkdir "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\FFMigo"
 powershell "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\FFMigo\\FFMigo.lnk'); $Shortcut.TargetPath = 'C:\\Program Files\\FFMigo\\FFMigo.exe'; $Shortcut.Save()"
 
-echo ✅ FFMigo has been installed to C:\Program Files\FFMigo\
-echo 🎉 You can now launch FFMigo from your Desktop or Start Menu!
+echo FFMigo has been installed to C:\Program Files\FFMigo\
+echo You can now launch FFMigo from your Desktop or Start Menu!
 pause
 '''
     
