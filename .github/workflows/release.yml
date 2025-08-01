@@ -298,15 +298,26 @@ jobs:
         files: |
           windows-artifacts/dist/FFMigo.exe
           windows-artifacts/install_windows.bat
-          windows-artifacts/DISTRIBUTION_README.md
+          windows-artifacts/README_Windows.md
           macos-artifacts/dist/FFMigo/FFMigo
           macos-artifacts/FFMigo.dmg
           macos-artifacts/install_macos.sh
-          macos-artifacts/DISTRIBUTION_README.md
+          macos-artifacts/README_macOS.md
         draft: false
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Rename README files to avoid conflicts
+      run: |
+        echo "Renaming README files to avoid conflicts..."
+        if [ -f "windows-artifacts/DISTRIBUTION_README.md" ]; then
+          mv windows-artifacts/DISTRIBUTION_README.md windows-artifacts/README_Windows.md
+        fi
+        if [ -f "macos-artifacts/DISTRIBUTION_README.md" ]; then
+          mv macos-artifacts/DISTRIBUTION_README.md macos-artifacts/README_macOS.md
+        fi
+        echo "README files renamed successfully"
         
     - name: Debug - Show what files were actually uploaded
       run: |
@@ -314,10 +325,10 @@ jobs:
         echo "Windows files:"
         echo "- windows-artifacts/dist/FFMigo.exe"
         echo "- windows-artifacts/install_windows.bat"
-        echo "- windows-artifacts/DISTRIBUTION_README.md"
+        echo "- windows-artifacts/README_Windows.md"
         echo ""
         echo "macOS files:"
         echo "- macos-artifacts/dist/FFMigo/FFMigo"
         echo "- macos-artifacts/FFMigo.dmg"
         echo "- macos-artifacts/install_macos.sh"
-        echo "- macos-artifacts/DISTRIBUTION_README.md" 
+        echo "- macos-artifacts/README_macOS.md" 
