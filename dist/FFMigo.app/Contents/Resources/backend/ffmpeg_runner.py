@@ -2,6 +2,7 @@ import subprocess
 import re
 import shlex
 import os
+import platform
 
 def validate_ffmpeg_command(cmd):
     # Must start with ffmpeg
@@ -33,8 +34,51 @@ def validate_ffmpeg_command(cmd):
             return False, 'Output file must not contain any path or directory.'
     return True, ''
 
+def find_ffmpeg():
+    """Find FFmpeg executable in common locations"""
+    # Common FFmpeg installation paths
+    common_paths = [
+        '/usr/local/bin/ffmpeg',
+        '/opt/homebrew/bin/ffmpeg',  # Apple Silicon Homebrew
+        '/usr/bin/ffmpeg',
+        '/opt/local/bin/ffmpeg',     # MacPorts
+        'C:\\ffmpeg\\bin\\ffmpeg.exe',  # Windows
+        'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',  # Windows
+    ]
+    
+    # First check if ffmpeg is in PATH
+    try:
+        result = subprocess.run(['ffmpeg', '-version'], 
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
+                              text=True, timeout=5)
+        if result.returncode == 0:
+            return 'ffmpeg'
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    
+    # Check common installation paths
+    for path in common_paths:
+        if os.path.exists(path):
+            return path
+    
+    return None
+
 def run_ffmpeg_command(cmd, workdir):
     try:
+        # Find FFmpeg executable
+        ffmpeg_path = find_ffmpeg()
+        if not ffmpeg_path:
+            return {
+                'success': False,
+                'stdout': '',
+                'stderr': 'FFmpeg not found. Please install FFmpeg and ensure it is in your PATH or in a common installation location.',
+                'returncode': -1
+            }
+        
+        # Replace 'ffmpeg' with the full path if needed
+        if cmd.strip().startswith('ffmpeg'):
+            cmd = cmd.replace('ffmpeg', ffmpeg_path, 1)
+        
         args = shlex.split(cmd)
         result = subprocess.run(args, cwd=workdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         return {

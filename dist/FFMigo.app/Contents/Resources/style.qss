@@ -246,6 +246,31 @@ QSlider::handle:horizontal {
     border: 2px solid #a259ff;
 }
 
+#SidebarHelpButton {
+    background: #2d1e3a;
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    min-width: 32px;
+    min-height: 32px;
+    max-width: 32px;
+    max-height: 32px;
+    margin: 0 0 0 0;
+    padding: 0;
+    vertical-align: middle;
+}
+#SidebarHelpButton:hover {
+    background: #a259ff;
+    color: #fff;
+}
+#SidebarHelpButton:pressed {
+    background: #6a3ea1;
+}
+#SidebarHelpButton:focus {
+    outline: none;
+    border: 2px solid #a259ff;
+}
+
 /* Checkpoint dialog styling */
 #RestoreCheckpointButton {
     background: #a259ff;

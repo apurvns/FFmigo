@@ -168,7 +168,8 @@ jobs:
       run: |
         if [ ! -f "install_macos.sh" ]; then
           echo '#!/bin/bash' > install_macos.sh
-          echo 'cp -R dist/FFMigo /Applications/' >> install_macos.sh
+          echo 'cp -R dist/FFMigo.app /Applications/' >> install_macos.sh
+          echo 'chmod +x /Applications/FFMigo.app/Contents/MacOS/FFMigo' >> install_macos.sh
           chmod +x install_macos.sh
         fi
         
@@ -185,13 +186,30 @@ jobs:
           echo '3. Launch FFMigo from Applications folder' >> DISTRIBUTION_README.md
           echo '' >> DISTRIBUTION_README.md
           echo '### Manual Installation' >> DISTRIBUTION_README.md
-          echo '1. Copy the `FFMigo` folder to your desired location' >> DISTRIBUTION_README.md
-          echo '2. Run: `./FFMigo/FFMigo`' >> DISTRIBUTION_README.md
+          echo '1. Copy the `FFMigo.app` bundle to your desired location' >> DISTRIBUTION_README.md
+          echo '2. Run: `open FFMigo.app`' >> DISTRIBUTION_README.md
           echo '' >> DISTRIBUTION_README.md
           echo '## Requirements' >> DISTRIBUTION_README.md
           echo '- macOS 10.14 or later' >> DISTRIBUTION_README.md
           echo '- FFmpeg installed on the system' >> DISTRIBUTION_README.md
           echo '- Local LLM server (Ollama, LM Studio, etc.)' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '## FFmpeg Installation' >> DISTRIBUTION_README.md
+          echo 'FFMigo requires FFmpeg to be installed on your system. Here are the recommended installation methods:' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '### Using Homebrew (Recommended)' >> DISTRIBUTION_README.md
+          echo '```bash' >> DISTRIBUTION_README.md
+          echo 'brew install ffmpeg' >> DISTRIBUTION_README.md
+          echo '```' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '### Using MacPorts' >> DISTRIBUTION_README.md
+          echo '```bash' >> DISTRIBUTION_README.md
+          echo 'sudo port install ffmpeg' >> DISTRIBUTION_README.md
+          echo '```' >> DISTRIBUTION_README.md
+          echo '' >> DISTRIBUTION_README.md
+          echo '### Manual Installation' >> DISTRIBUTION_README.md
+          echo '1. Download FFmpeg from https://ffmpeg.org/download.html' >> DISTRIBUTION_README.md
+          echo '2. Extract and add to your PATH' >> DISTRIBUTION_README.md
           echo '' >> DISTRIBUTION_README.md
           echo '## Features' >> DISTRIBUTION_README.md
           echo '- Drag-and-drop video loading' >> DISTRIBUTION_README.md
@@ -201,9 +219,10 @@ jobs:
           echo '- Custom application icon' >> DISTRIBUTION_README.md
           echo '' >> DISTRIBUTION_README.md
           echo '## Troubleshooting' >> DISTRIBUTION_README.md
-          echo '- If FFmpeg is not found, install it: `brew install ffmpeg`' >> DISTRIBUTION_README.md
-          echo '- If the app doesn''t start, check that FFmpeg is in your PATH' >> DISTRIBUTION_README.md
+          echo '- If FFmpeg is not found, install it using one of the methods above' >> DISTRIBUTION_README.md
+          echo '- The app will automatically search for FFmpeg in common installation locations' >> DISTRIBUTION_README.md
           echo '- For LLM issues, ensure your local LLM server is running' >> DISTRIBUTION_README.md
+          echo '- If the app doesn''t start, check that FFmpeg is properly installed' >> DISTRIBUTION_README.md
         fi
         
     - name: Create DMG file
@@ -215,15 +234,15 @@ jobs:
         echo "Contents of dist/ directory:"
         ls -la dist/
         
-        # Create DMG - using the directory structure
+        # Create DMG - using the app bundle structure
         create-dmg \
           --volname "FFMigo" \
           --volicon "ui/resources/icons/app_logo.png" \
           --window-pos 200 120 \
           --window-size 600 400 \
           --icon-size 100 \
-          --icon "FFMigo" 175 120 \
-          --hide-extension "FFMigo" \
+          --icon "FFMigo.app" 175 120 \
+          --hide-extension "FFMigo.app" \
           --app-drop-link 425 120 \
           "FFMigo.dmg" \
           "dist/"
@@ -234,8 +253,8 @@ jobs:
     - name: Debug - List files before macOS upload
       run: |
         echo "=== Files to be uploaded for macOS ==="
-        echo "Checking dist/FFMigo/:"
-        ls -la dist/FFMigo/ 2>/dev/null || echo "dist/FFMigo/ NOT FOUND"
+        echo "Checking dist/FFMigo.app/:"
+        ls -la dist/FFMigo.app/ 2>/dev/null || echo "dist/FFMigo.app/ NOT FOUND"
         echo "Checking FFMigo.dmg:"
         ls -la FFMigo.dmg 2>/dev/null || echo "FFMigo.dmg NOT FOUND"
         echo "Checking install_macos.sh:"
@@ -250,7 +269,7 @@ jobs:
       with:
         name: FFMigo-macOS
         path: |
-          dist/FFMigo/
+          dist/FFMigo.app/
           FFMigo.dmg
           install_macos.sh
           DISTRIBUTION_README.md
@@ -299,7 +318,7 @@ jobs:
           windows-artifacts/dist/FFMigo.exe
           windows-artifacts/install_windows.bat
           windows-artifacts/README_Windows.md
-          macos-artifacts/dist/FFMigo/FFMigo
+          macos-artifacts/dist/FFMigo.app/
           macos-artifacts/FFMigo.dmg
           macos-artifacts/install_macos.sh
           macos-artifacts/README_macOS.md

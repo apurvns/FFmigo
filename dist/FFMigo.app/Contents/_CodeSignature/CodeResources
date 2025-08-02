@@ -482,23 +482,23 @@
 		</data>
 		<key>Resources/backend/__pycache__/config.cpython-311.pyc</key>
 		<data>
-		kjUioiT1Nl+qJjdoPRXuCXXs3Ws=
+		buSUZrxSQnjKC0RCpQUU6fcKHUw=
 		</data>
 		<key>Resources/backend/__pycache__/ffmpeg_runner.cpython-311.pyc</key>
 		<data>
-		N8DQAoXihR9eAmqyAc0Vhkxapgg=
+		RWHnk9PqYtFpRXMfn8rw81mS7pU=
 		</data>
 		<key>Resources/backend/__pycache__/llm_client.cpython-311.pyc</key>
 		<data>
-		ojEsHNaHFGYAFCXbZcWx/kZr978=
+		+eSjMS4ux6o6qvP9mhk8opRXDnE=
 		</data>
 		<key>Resources/backend/__pycache__/project_manager.cpython-311.pyc</key>
 		<data>
-		veu/HE+d2vYc0QHRugiMcA93xlk=
+		Ea2FRTN6vQv33LvflYUVyBTfzJE=
 		</data>
 		<key>Resources/backend/__pycache__/thumbnailer.cpython-311.pyc</key>
 		<data>
-		rp7SxJFUsQAah6fH3rreEEuR6dc=
+		9sS0oC+HCfQZXKk1KfdUQ4g52NE=
 		</data>
 		<key>Resources/backend/config.py</key>
 		<data>
@@ -506,11 +506,11 @@
 		</data>
 		<key>Resources/backend/ffmpeg_runner.py</key>
 		<data>
-		Nnv0e99VvsJiz1IFKTHfIswPWw0=
+		joLSVc2d0S57Qw+evvsU2XaJKkA=
 		</data>
 		<key>Resources/backend/llm_client.py</key>
 		<data>
-		lmldpAac+2oK9SSFTiseVlAeKzw=
+		A8snAkzJmuiSDBc3OEiGEWiaOYc=
 		</data>
 		<key>Resources/backend/project_manager.py</key>
 		<data>
@@ -518,11 +518,11 @@
 		</data>
 		<key>Resources/backend/thumbnailer.py</key>
 		<data>
-		KcJLjpnEkItrJqJS+1Tw9/IMaRs=
+		3crZbGOiQ9N7HL/epy+h1k9SU6s=
 		</data>
 		<key>Resources/base_library.zip</key>
 		<data>
-		tM2tdnR1CNT0VInBRM11T85H+k4=
+		sVX4O4veftia7sB0MVzAWBkJUkM=
 		</data>
 		<key>Resources/certifi/cacert.pem</key>
 		<data>
@@ -538,15 +538,19 @@
 		</data>
 		<key>Resources/style.qss</key>
 		<data>
-		ok2DNbKGrUkkOaLVMkZ4lm90kKM=
+		gOLL6ggddH4Y9TsEGZF5pw/RfI4=
+		</data>
+		<key>Resources/ui/__pycache__/base_widgets.cpython-311.pyc</key>
+		<data>
+		iPZ4hVxClXyo0yJxNoaARxejhlM=
 		</data>
 		<key>Resources/ui/__pycache__/checkpoint_dialog.cpython-311.pyc</key>
 		<data>
-		beSu+Uf5PZ6lNX1/O9LoHOk+WWg=
+		ewH6yBYVwsN7nJw2tSAoZo5PLgQ=
 		</data>
 		<key>Resources/ui/__pycache__/main_window.cpython-311.pyc</key>
 		<data>
-		oAPiood2rNp0y68fBclHMcW3ssk=
+		xPIBHjFr/yGKqGPLiIQ6I1Dn2bY=
 		</data>
 		<key>Resources/ui/__pycache__/main_window.pypy310.pyc</key>
 		<data>
@@ -554,7 +558,7 @@
 		</data>
 		<key>Resources/ui/__pycache__/settings_dialog.cpython-311.pyc</key>
 		<data>
-		9sgGFTHWjs0TVa3qeXHXNo+HZw0=
+		K8Uo4NV48ZE/1WYa1kZ0jTByzyI=
 		</data>
 		<key>Resources/ui/checkpoint_dialog.py</key>
 		<data>
@@ -562,7 +566,7 @@
 		</data>
 		<key>Resources/ui/main_window.py</key>
 		<data>
-		fzReE5vpydxZUs5tXVoWaZfqG4o=
+		B7cXUA1azviM3Wbzn0dfXtipggU=
 		</data>
 		<key>Resources/ui/resources/icons/app_logo.png</key>
 		<data>
@@ -1426,6 +1430,15 @@
 			</data>
 			<key>requirement</key>
 			<string>cdhash H"27b57eaa79b7af8e04ea26ea3ecf7e12effed4d9"</string>
+		</dict>
+		<key>Frameworks/lib-dynload/pyexpat.cpython-311-darwin.so</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			xpZX+p7mmufXV5eA+EHtiLbTSFw=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c69657fa9ee69ae7d7579780f841ed88b6d3485c"</string>
 		</dict>
 		<key>Frameworks/lib-dynload/resource.cpython-311-darwin.so</key>
 		<dict>
@@ -2493,35 +2506,35 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			ylEQBh7Us9Jo1W7nCGziKQnsaoDoF32co2Suotm2tF0=
+			gylmZ3m+NxGkTUPeNjXlUZf09AxSGZzT5O+m6QRNk+0=
 			</data>
 		</dict>
 		<key>Resources/backend/__pycache__/ffmpeg_runner.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			QfK6MJxi4XSCu16MkrpN66NYRPOBB4hLhJbis5+BDbU=
+			vnvQrvaGVfFq07fOvAVZW7+XB9WaFMiRp5qBF96Ux7g=
 			</data>
 		</dict>
 		<key>Resources/backend/__pycache__/llm_client.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			eyTqjqY0+AomZq7HZXeJ3HkP73hIJxLdbXkPcjAGQGE=
+			zPHipL7HaoAYln0mLpIWCWnMjXrhIj3zt0fwW4bWr+U=
 			</data>
 		</dict>
 		<key>Resources/backend/__pycache__/project_manager.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			unarJoAmsWfF1Cjbz+04Su1wvmp8ILecjmh+K0Dgs60=
+			Ut/8+9Kp8C4Mtm6/UBgEEiZcizkfsRywETluXUO9flQ=
 			</data>
 		</dict>
 		<key>Resources/backend/__pycache__/thumbnailer.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			grK/8gJ1fbek3kdxvBgEi+xOS082bE2dSolbqYRXXSM=
+			KTSRqILfrPx0UtJ6c2curnVCMw6VO3dRbvrnM/WBnhg=
 			</data>
 		</dict>
 		<key>Resources/backend/config.py</key>
@@ -2535,14 +2548,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			7UM460TpX9HEaDwOdkKij76zlV4qy+UQhRyCwhSeJiM=
+			x2PXvyeukX/1375cOgxeoCdBce091B4Frcrkw5GGYko=
 			</data>
 		</dict>
 		<key>Resources/backend/llm_client.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			YIyT06qRIRhDX823bEyygF6HNtbfXUqsOvyVcqm5J2o=
+			dlGKfHGK9YxRZOAxqXfzxQNt0Q5jmOb3Syf7dWWGwfg=
 			</data>
 		</dict>
 		<key>Resources/backend/project_manager.py</key>
@@ -2556,14 +2569,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			IqU7XCCvK8asAABCUEdPT5akQGrhoplBUfd+gZDAzQU=
+			Xvl9RHyoI9FQDP/QFdnhOb2VwQ64NhqiZ5J4JR7Apqs=
 			</data>
 		</dict>
 		<key>Resources/base_library.zip</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			jT1b8LqqJ37EETI3kRRhbwU1Ix/suMH3DvkWHamEHr8=
+			1Jd58WXHSMEm2e0cj0lWSqg8QKJ6t1BeuppCuVt+99k=
 			</data>
 		</dict>
 		<key>Resources/certifi/cacert.pem</key>
@@ -2656,21 +2669,28 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			JtBQNBhcaMy5FaxocTFI+oCtXK685ps3yUC6Dyy+bmY=
+			39Eakd7wLbgOC/duD8Z8Ik2NibWbo/lGkj6rh7hU78I=
+			</data>
+		</dict>
+		<key>Resources/ui/__pycache__/base_widgets.cpython-311.pyc</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			haFGls5RHiZ3js0yxoXlKgQZNL+5AIVZP8mB4xedGRI=
 			</data>
 		</dict>
 		<key>Resources/ui/__pycache__/checkpoint_dialog.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			TdRQIRE8hgZt2x4vbZ+4J/gw8HvkjcTPl+TpR9ZaarQ=
+			7S4+hq8L3RXkCWLB4aBMHOurBKlB8BeB6LCeLBQsS1w=
 			</data>
 		</dict>
 		<key>Resources/ui/__pycache__/main_window.cpython-311.pyc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			R/J2Lkp6BDHVRYvAWqwqNsmlqDz8MYsT4A10QDYne30=
+			mlvYNlAOxVxOTm4x5f4sx7Fg+BCAc3R188/7f4uE5kU=
 			</data>
 		</dict>
 		<key>Resources/ui/__pycache__/main_window.pypy310.pyc</key>
@@ -2684,7 +2704,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			JG/oy10GxfTYh/LDDRneQOPCA6TRD/VIc9pqzZPrFJE=
+			OiL/Y40M8G6jOSEhjAegv9qQ+W6xyLGI5LVF0vfEWlU=
 			</data>
 		</dict>
 		<key>Resources/ui/checkpoint_dialog.py</key>
@@ -2698,7 +2718,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			pZGiImA0tlAm3eLM0WDi0sRBcZW7g/RdI0E+qxcdYcE=
+			K0fXLpKxa9Wec+11VED5Xi0R5VLZWFND/6MgBtusDsw=
 			</data>
 		</dict>
 		<key>Resources/ui/resources/icons/app_logo.png</key>

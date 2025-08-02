@@ -56,6 +56,7 @@ def build_for_platform():
     # Platform-specific options
     if current_platform == "Darwin":  # macOS
         cmd.insert(3, "--onedir")  # Use onedir for macOS
+        cmd.extend(["--windowed"])  # Create a proper app bundle
         print("Building macOS application...")
     elif current_platform == "Windows":
         cmd.insert(3, "--onefile")  # Use onefile for Windows
@@ -71,9 +72,71 @@ def build_for_platform():
         print("Build successful!")
         
         if current_platform == "Darwin":
-            print("macOS App: dist/FFMigo/")
-            print("Test it: ./dist/FFMigo/FFMigo")
-            print("Distribute the entire 'dist/FFMigo' folder")
+            # Create proper .app bundle structure
+            print("Creating macOS .app bundle...")
+            app_bundle_path = "dist/FFMigo.app"
+            contents_path = f"{app_bundle_path}/Contents"
+            macos_path = f"{contents_path}/MacOS"
+            resources_path = f"{contents_path}/Resources"
+            
+            # Create directory structure
+            os.makedirs(macos_path, exist_ok=True)
+            os.makedirs(resources_path, exist_ok=True)
+            
+            # Move the built executable to MacOS directory
+            if os.path.exists("dist/FFMigo/FFMigo"):
+                os.rename("dist/FFMigo/FFMigo", f"{macos_path}/FFMigo")
+            
+            # Move all other files to Resources
+            if os.path.exists("dist/FFMigo"):
+                for item in os.listdir("dist/FFMigo"):
+                    if item != "FFMigo":  # Skip the executable we already moved
+                        src = f"dist/FFMigo/{item}"
+                        dst = f"{resources_path}/{item}"
+                        if os.path.isdir(src):
+                            import shutil
+                            shutil.move(src, dst)
+                        else:
+                            os.rename(src, dst)
+                
+                # Remove the original directory
+                import shutil
+                shutil.rmtree("dist/FFMigo")
+            
+            # Create Info.plist
+            info_plist = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>FFMigo</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.ffmigo.app</string>
+    <key>CFBundleName</key>
+    <string>FFMigo</string>
+    <key>CFBundleDisplayName</key>
+    <string>FFMigo</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.14</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>'''
+            
+            with open(f"{contents_path}/Info.plist", "w") as f:
+                f.write(info_plist)
+            
+            print(f"macOS App Bundle: {app_bundle_path}")
+            print(f"Test it: open {app_bundle_path}")
+            print("Distribute the FFMigo.app bundle")
         elif current_platform == "Windows":
             print("Windows Executable: dist/FFMigo.exe")
             print("Test it: dist/FFMigo.exe")
@@ -98,11 +161,11 @@ echo "Installing FFMigo..."
 # Create Applications directory if it doesn't exist
 mkdir -p /Applications
 
-# Copy the application
-cp -R "dist/FFMigo" /Applications/
+# Copy the application bundle
+cp -R "dist/FFMigo.app" /Applications/
 
 # Make it executable
-chmod +x /Applications/FFMigo/FFMigo
+chmod +x /Applications/FFMigo.app/Contents/MacOS/FFMigo
 
 echo "FFMigo has been installed to /Applications/"
 echo "You can now launch FFMigo from your Applications folder!"
@@ -154,14 +217,30 @@ def create_distribution_readme():
 3. Launch FFMigo from Applications folder
 
 ### Manual Installation
-1. Copy the `FFMigo` folder to your desired location
-2. Make it executable: `chmod +x FFMigo/FFMigo`
-3. Run: `./FFMigo/FFMigo`
+1. Copy the `FFMigo.app` bundle to your desired location
+2. Run: `open FFMigo.app`
 
 ## Requirements
 - macOS 10.14 or later
 - FFmpeg installed on the system
 - Local LLM server (Ollama, LM Studio, etc.)
+
+## FFmpeg Installation
+FFMigo requires FFmpeg to be installed on your system. Here are the recommended installation methods:
+
+### Using Homebrew (Recommended)
+```bash
+brew install ffmpeg
+```
+
+### Using MacPorts
+```bash
+sudo port install ffmpeg
+```
+
+### Manual Installation
+1. Download FFmpeg from https://ffmpeg.org/download.html
+2. Extract and add to your PATH
 
 ## Features
 - Drag-and-drop video loading
@@ -171,9 +250,10 @@ def create_distribution_readme():
 - Custom application icon
 
 ## Troubleshooting
-- If FFmpeg is not found, install it: `brew install ffmpeg`
-- If the app doesn't start, check that FFmpeg is in your PATH
+- If FFmpeg is not found, install it using one of the methods above
+- The app will automatically search for FFmpeg in common installation locations
 - For LLM issues, ensure your local LLM server is running
+- If the app doesn't start, check that FFmpeg is properly installed
 '''
     elif current_platform == "Windows":
         readme_content = '''# FFMigo for Windows
