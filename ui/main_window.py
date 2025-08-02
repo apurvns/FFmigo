@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy, QSplitter, QListWidget, QMenu, QListWidgetItem, QHBoxLayout, QScrollArea, QListWidgetItem, QStyledItemDelegate
 from PyQt6.QtCore import Qt, pyqtSignal, QObject, QUrl, QTimer, QEvent, QSize, QPoint
-from PyQt6.QtGui import QPixmap, QIcon, QDragEnterEvent, QDropEvent, QFont, QAction, QPainter, QColor
+from PyQt6.QtGui import QPixmap, QIcon, QDragEnterEvent, QDropEvent, QFont, QAction, QPainter, QColor,QShortcut, QKeySequence
 from PyQt6.QtWidgets import QStyle
 import os
 from backend import project_manager, thumbnailer
@@ -325,6 +325,12 @@ class MainWindow(QMainWindow):
         self.video_widget = QVideoWidget()
         self.video_widget.setMinimumHeight(360)
         self.video_player_layout.addWidget(self.video_widget)
+         # Bind Escape key to exit fullscreen
+        self.esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self.video_widget)
+        self.esc_shortcut.activated.connect(self.exitFullscreen) 
+        # Shortcut for Spacebar to toggle play/pause in fullscreen
+        spacebar_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self.video_widget)
+        spacebar_shortcut.activated.connect(self.spacebar_toggle_play_pause)
         # Modern media control bar
         self.media_controls = QWidget()
         self.media_controls_layout = QHBoxLayout(self.media_controls)
@@ -679,6 +685,10 @@ class MainWindow(QMainWindow):
         else:
             self.media_player.play()
 
+    def spacebar_toggle_play_pause(self):
+        if self.video_widget.isFullScreen():
+            self.toggle_play_pause()
+
     def update_play_pause_icon(self, state):
         if state == QMediaPlayer.PlaybackState.PlayingState:
             self.play_pause_btn.setIcon(QIcon.fromTheme("media-playback-pause"))
@@ -713,6 +723,12 @@ class MainWindow(QMainWindow):
             self.video_widget.setFullScreen(False)
         else:
             self.video_widget.setFullScreen(True)
+
+    def exitFullscreen(self):
+        if self.video_widget.isFullScreen():
+            self.video_widget.setFullScreen(False)
+        else:
+            super().keyPressEvent(event)  # Handle other keys normally
 
     def handle_media_error(self, error):
         if error:
@@ -939,35 +955,61 @@ class MainWindow(QMainWindow):
 
     def load_project(self, proj_dir):
         import os
+        import re
         import subprocess
         
         print(f"[DEBUG] load_project: loading project from {proj_dir}")
+
+         try:
+            files = os.listdir(proj_dir)
         
-        # Use shell command to find the latest input file
-        try:
-            # Find all input files and get the one with highest number
-            cmd = f"ls {proj_dir}/input* 2>/dev/null | grep -E 'input_[0-9]+\.' | sort -V | tail -1"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            latest_input_file = result.stdout.strip()
+            # Filter files that match 'input_<number>.ext'
+            input_files = [f for f in files if re.match(r'^input_\d+\.', f)]
+            input_files.sort(key=lambda f: int(re.search(r'(\d+)', f).group()))  # Sort by number
             
+            latest_input_file = input_files[-1] if input_files else None
+
             if not latest_input_file:
-                # No numbered files found, try to find input.mp4
-                cmd2 = f"ls {proj_dir}/input.mp4 2>/dev/null"
-                result2 = subprocess.run(cmd2, shell=True, capture_output=True, text=True)
-                latest_input_file = result2.stdout.strip()
-            
-            if not latest_input_file:
-                QMessageBox.warning(self, "Error", "No input video found in project.")
-                return
-            
-            # Extract just the filename from the full path
-            latest_input_file = os.path.basename(latest_input_file)
+                fallback = os.path.join(proj_dir, "input.mp4")
+                if os.path.exists(fallback):
+                    latest_input_file = "input.mp4"
+                else:
+                    QMessageBox.warning(self, "Error", "No input video found in project.")
+                    return
+
             print(f"[DEBUG] load_project: found latest file: {latest_input_file}")
-            
+
         except Exception as e:
             print(f"[ERROR] load_project: error finding latest file: {e}")
             QMessageBox.warning(self, "Error", "No input video found in project.")
             return
+
+        
+        # Use shell command to find the latest input file
+        #try:
+            # Find all input files and get the one with highest number
+            #cmd = f"ls {proj_dir}/input* 2>/dev/null | grep -E 'input_[0-9]+\.' | sort -V | tail -1"
+            #result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            #latest_input_file = result.stdout.strip()
+            
+           # if not latest_input_file:
+                # No numbered files found, try to find input.mp4
+                #cmd2 = f"ls {proj_dir}/input.mp4 2>/dev/null"
+                #result2 = subprocess.run(cmd2, shell=True, capture_output=True, text=True)
+                #latest_input_file = result2.stdout.strip()
+            
+            #if not latest_input_file:
+               # QMessageBox.warning(self, "Error", "No input video found in project.")
+                #return
+            
+            # Extract just the filename from the full path
+            #latest_input_file = os.path.basename(latest_input_file)
+            #print(f"[DEBUG] load_project: found latest file: {latest_input_file}")
+            
+        #except Exception as e:
+            #print(f"[ERROR] load_project: error finding latest file: {e}")
+            #QMessageBox.warning(self, "Error", "No input video found in project.")
+            #return
         
         input_path = os.path.join(proj_dir, latest_input_file)
         input_ext = os.path.splitext(input_path)[1][1:]
