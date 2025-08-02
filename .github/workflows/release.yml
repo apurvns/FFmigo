@@ -168,8 +168,7 @@ jobs:
       run: |
         if [ ! -f "install_macos.sh" ]; then
           echo '#!/bin/bash' > install_macos.sh
-          echo 'cp -R dist/FFMigo.app /Applications/' >> install_macos.sh
-          echo 'chmod +x /Applications/FFMigo.app/Contents/MacOS/FFMigo' >> install_macos.sh
+          echo 'cp -R dist/FFMigo /Applications/' >> install_macos.sh
           chmod +x install_macos.sh
         fi
         
@@ -186,8 +185,8 @@ jobs:
           echo '3. Launch FFMigo from Applications folder' >> DISTRIBUTION_README.md
           echo '' >> DISTRIBUTION_README.md
           echo '### Manual Installation' >> DISTRIBUTION_README.md
-          echo '1. Copy the `FFMigo.app` bundle to your desired location' >> DISTRIBUTION_README.md
-          echo '2. Run: `open FFMigo.app`' >> DISTRIBUTION_README.md
+          echo '1. Copy the `FFMigo` folder to your desired location' >> DISTRIBUTION_README.md
+          echo '2. Run: `./FFMigo/FFMigo`' >> DISTRIBUTION_README.md
           echo '' >> DISTRIBUTION_README.md
           echo '## Requirements' >> DISTRIBUTION_README.md
           echo '- macOS 10.14 or later' >> DISTRIBUTION_README.md
@@ -234,15 +233,15 @@ jobs:
         echo "Contents of dist/ directory:"
         ls -la dist/
         
-        # Create DMG - using the app bundle structure
+        # Create DMG - using the directory structure
         create-dmg \
           --volname "FFMigo" \
           --volicon "ui/resources/icons/app_logo.png" \
           --window-pos 200 120 \
           --window-size 600 400 \
           --icon-size 100 \
-          --icon "FFMigo.app" 175 120 \
-          --hide-extension "FFMigo.app" \
+          --icon "FFMigo" 175 120 \
+          --hide-extension "FFMigo" \
           --app-drop-link 425 120 \
           "FFMigo.dmg" \
           "dist/"
@@ -253,8 +252,8 @@ jobs:
     - name: Debug - List files before macOS upload
       run: |
         echo "=== Files to be uploaded for macOS ==="
-        echo "Checking dist/FFMigo.app/:"
-        ls -la dist/FFMigo.app/ 2>/dev/null || echo "dist/FFMigo.app/ NOT FOUND"
+        echo "Checking dist/FFMigo/:"
+        ls -la dist/FFMigo/ 2>/dev/null || echo "dist/FFMigo/ NOT FOUND"
         echo "Checking FFMigo.dmg:"
         ls -la FFMigo.dmg 2>/dev/null || echo "FFMigo.dmg NOT FOUND"
         echo "Checking install_macos.sh:"
@@ -269,7 +268,7 @@ jobs:
       with:
         name: FFMigo-macOS
         path: |
-          dist/FFMigo.app/
+          dist/FFMigo/
           FFMigo.dmg
           install_macos.sh
           DISTRIBUTION_README.md
@@ -318,7 +317,7 @@ jobs:
           windows-artifacts/dist/FFMigo.exe
           windows-artifacts/install_windows.bat
           windows-artifacts/README_Windows.md
-          macos-artifacts/dist/FFMigo.app/
+          macos-artifacts/dist/FFMigo/FFMigo
           macos-artifacts/FFMigo.dmg
           macos-artifacts/install_macos.sh
           macos-artifacts/README_macOS.md

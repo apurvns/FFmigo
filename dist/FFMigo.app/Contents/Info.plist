@@ -2,25 +2,23 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleExecutable</key>
-    <string>FFMigo</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.ffmigo.app</string>
-    <key>CFBundleName</key>
-    <string>FFMigo</string>
-    <key>CFBundleDisplayName</key>
-    <string>FFMigo</string>
-    <key>CFBundleVersion</key>
-    <string>1.0</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleSignature</key>
-    <string>????</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>10.14</string>
-    <key>NSHighResolutionCapable</key>
-    <true/>
+	<key>CFBundleDisplayName</key>
+	<string>FFMigo</string>
+	<key>CFBundleExecutable</key>
+	<string>FFMigo</string>
+	<key>CFBundleIconFile</key>
+	<string>generated-05d1a75f3fb8b97835ed2244d6c99ca75d697b82eccc6bc6d1e9298bf2f19a40.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>FFMigo</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>FFMigo</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.0.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
 </dict>
 </plist>

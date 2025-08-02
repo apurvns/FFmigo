@@ -40,31 +40,19 @@ def test_build():
     # Check what was created
     current_platform = platform.system()
     if current_platform == "Darwin":
-        expected_path = "dist/FFMigo.app"
+        expected_path = "dist/FFMigo"
         if os.path.exists(expected_path):
-            print(f"✅ macOS app bundle created: {expected_path}")
+            print(f"✅ macOS app directory created: {expected_path}")
             
-            # Check app bundle structure
-            contents_path = f"{expected_path}/Contents"
-            macos_path = f"{contents_path}/MacOS"
-            resources_path = f"{contents_path}/Resources"
-            info_plist = f"{contents_path}/Info.plist"
-            
-            if all(os.path.exists(p) for p in [contents_path, macos_path, resources_path, info_plist]):
-                print("✅ App bundle structure is correct")
-            else:
-                print("❌ App bundle structure is incorrect")
-                return False
-                
             # Check if executable exists
-            executable_path = f"{macos_path}/FFMigo"
+            executable_path = f"{expected_path}/FFMigo"
             if os.path.exists(executable_path):
-                print("✅ Executable found in app bundle")
+                print("✅ Executable found in app directory")
             else:
-                print("❌ Executable not found in app bundle")
+                print("❌ Executable not found in app directory")
                 return False
         else:
-            print(f"❌ Expected app bundle not found: {expected_path}")
+            print(f"❌ Expected app directory not found: {expected_path}")
             return False
             
     elif current_platform == "Windows":

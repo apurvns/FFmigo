@@ -8,8 +8,9 @@
 3. Launch FFMigo from Applications folder
 
 ### Manual Installation
-1. Copy the `FFMigo.app` bundle to your desired location
-2. Run: `open FFMigo.app`
+1. Copy the `FFMigo` folder to your desired location
+2. Make it executable: `chmod +x FFMigo/FFMigo`
+3. Run: `./FFMigo/FFMigo`
 
 ## Requirements
 - macOS 10.14 or later
