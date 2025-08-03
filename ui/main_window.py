@@ -965,17 +965,17 @@ class MainWindow(QMainWindow):
         
             # Filter files that match 'input_<number>.ext'
             input_files = [f for f in files if re.match(r'^input_\d+\.', f)]
-            input_files.sort(key=lambda f: int(re.search(r'(\d+)', f).group()))  # Sort by number
+            input_files.sort(key=lambda f: int(re.search(r'input_(\d+)', f).group(1)) if re.search(r'input_(\d+)', f) else 0)
             
             latest_input_file = input_files[-1] if input_files else None
 
-            if not latest_input_file:
-                fallback = os.path.join(proj_dir, "input.mp4")
-                if os.path.exists(fallback):
-                    latest_input_file = "input.mp4"
-                else:
-                    QMessageBox.warning(self, "Error", "No input video found in project.")
-                    return
+             if not latest_input_file:
+                fallback_files = [f for f in files if re.match(r'^input\..+$', f)]
+                latest_input_file = fallback_files[0] if fallback_files else None
+
+            if not latest_input_file:    
+                QMessageBox.warning(self, "Error", "No input video found in project.")
+                return
 
             print(f"[DEBUG] load_project: found latest file: {latest_input_file}")
 
@@ -983,7 +983,6 @@ class MainWindow(QMainWindow):
             print(f"[ERROR] load_project: error finding latest file: {e}")
             QMessageBox.warning(self, "Error", "No input video found in project.")
             return
-
         
         # Use shell command to find the latest input file
         #try:
