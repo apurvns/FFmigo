@@ -268,6 +268,44 @@ class ProjectSidebar(QWidget):
             proj_dir = item.data(Qt.ItemDataRole.UserRole)
             self.delete_project_requested.emit(proj_dir)
 
+class YouTubeDownloader(QThread):
+    progress_signal = pyqtSignal(int)      # Progress in %
+    finished_signal = pyqtSignal(str)      # File path when done
+    error_signal = pyqtSignal(str)         # Error messages
+
+    def __init__(self, url, project_dir):
+        super().__init__()
+        self.url = url
+        self.project_dir = project_dir
+        
+    def run(self):
+        try:
+            
+
+            ydl_opts = {
+                'format': 'mp4',
+                'outtmpl': os.path.join(self.project_dir, '%(title)s.%(ext)s'),
+                'progress_hooks': [self.progress_hook],
+                'quiet': True
+            }
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([self.url])
+
+        except Exception as e:
+            self.error_signal.emit(str(e))
+
+    def progress_hook(self, d):
+        if d['status'] == 'downloading':
+            percent_str = d.get('_percent_str', '0.0%').replace('%', '').strip()
+            try:
+                percent_val = int(float(percent_str))
+                self.progress_signal.emit(percent_val)
+            except:
+                pass
+        elif d['status'] == 'finished':
+            self.finished_signal.emit(d['filename'])
+
 class MainWindow(QMainWindow):
     process_result_ready = pyqtSignal(dict)
 
@@ -393,6 +431,21 @@ class MainWindow(QMainWindow):
         self.timer = QTimer()
         self.timer.setInterval(500)
         self.timer.timeout.connect(self.update_time_label)
+        # --- YouTube Download Section ---
+        youtube_layout = QHBoxLayout()
+        self.youtube_input = QLineEdit()
+        self.youtube_input.setPlaceholderText("Paste YouTube link here...")
+        youtube_layout.addWidget(self.youtube_input)
+        self.youtube_download_btn = QPushButton("Download")
+        self.youtube_download_btn.clicked.connect(self.download_youtube_video)
+        youtube_layout.addWidget(self.youtube_download_btn)
+        self.youtube_progress = QProgressBar()
+        self.youtube_progress.setValue(0)
+        self.youtube_progress.hide()
+        youtube_layout.addWidget(self.youtube_progress)
+        youtube_widget = QWidget()
+        youtube_widget.setLayout(youtube_layout)
+        self.vbox.addWidget(youtube_widget)
         # Chat log display
         self.chat_log = QTextEdit()
         self.chat_log.setReadOnly(True)
@@ -443,6 +496,35 @@ class MainWindow(QMainWindow):
         self.append_chat_log("System", "Video loaded. Ready for commands.")
         self.refresh_project_list(select=self.project_dir)
 
+    def download_youtube_video(self):
+        url = self.youtube_input.text().strip()
+        if not url:
+            QMessageBox.warning(self, "Error", "Please enter a YouTube link.")
+            return
+        self.youtube_progress.setFormat("Processing... ")
+        self.youtube_progress.setValue(0)
+        self.youtube_progress.show()
+
+        project_name = f"YouTube_{int(time.time())}"  # Unique name
+        project_dir = os.path.join(os.getcwd(), "projects", project_name)
+        os.makedirs(project_dir, exist_ok=True)
+
+        self.youtube_thread = YouTubeDownloader(url, project_dir)
+        self.youtube_thread.progress_signal.connect(self.youtube_progress.setValue)
+        self.youtube_thread.finished_signal.connect(self.youtube_download_finished)
+        self.youtube_thread.error_signal.connect(self.youtube_download_error)
+        self.youtube_thread.start()
+
+    def youtube_download_finished(self, file_path):
+        self.youtube_progress.hide()
+        QMessageBox.information(self, "Download Complete", f"Video saved to project folder:\n{file_path}")
+        self.load_project(os.path.dirname(file_path))  # Loads new project automatically
+
+
+    def youtube_download_error(self, error_msg):
+        self.youtube_progress.hide()
+        QMessageBox.critical(self, "Download Failed", error_msg)
+        
     def append_chat_log(self, sender, message):
         from datetime import datetime
         ts = datetime.now().strftime('%H:%M:%S')
