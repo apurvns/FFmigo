@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy, QSplitter, QListWidget, QMenu, QListWidgetItem, QHBoxLayout, QScrollArea, QListWidgetItem, QStyledItemDelegate
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy, QSplitter, QListWidget, QMenu, QListWidgetItem, QHBoxLayout, QScrollArea, QListWidgetItem, QStyledItemDelegate, QFrame
 from PyQt6.QtCore import Qt, pyqtSignal, QObject, QUrl, QTimer, QEvent, QSize, QPoint
 from PyQt6.QtGui import QPixmap, QIcon, QDragEnterEvent, QDropEvent, QFont, QAction, QPainter, QColor
 from PyQt6.QtWidgets import QStyle
@@ -124,6 +124,7 @@ class ProjectSidebar(QWidget):
         self.new_btn = QPushButton("+ New Project")
         self.new_btn.setObjectName("NewProjectButton")
         self.new_btn.clicked.connect(self.new_project_requested.emit)
+        self.new_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         top_row.addWidget(self.new_btn)
         
         # Add stretch to push settings button to right
@@ -148,6 +149,7 @@ class ProjectSidebar(QWidget):
         self.settings_btn.setFixedSize(32, 32)
         self.settings_btn.setIconSize(QSize(20, 20))
         self.settings_btn.clicked.connect(self.settings_requested.emit)
+        self.settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         top_row.addWidget(self.settings_btn)
         
         # Help/Info button
@@ -169,6 +171,7 @@ class ProjectSidebar(QWidget):
         self.help_btn.setFixedSize(32, 32)
         self.help_btn.setIconSize(QSize(20, 20))
         self.help_btn.clicked.connect(self.help_requested.emit)
+        self.help_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         top_row.addWidget(self.help_btn)
         
         self.vbox.addLayout(top_row)
@@ -309,33 +312,107 @@ class MainWindow(QMainWindow):
         self.vbox = QVBoxLayout(self.main_area)
         self.vbox.setContentsMargins(40, 32, 40, 32)  # Consistent margins for all main content
         self.vbox.setSpacing(24)
-        # Large bold heading at the top center
-        heading = QLabel("FFMigo Video Editor")
-        heading.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        heading.setStyleSheet("font-size: 32px; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;")
-        self.vbox.addWidget(heading)
+        # Project header with edit and delete options
+        self.project_header = QWidget()
+        self.project_header_layout = QHBoxLayout(self.project_header)
+        self.project_header_layout.setContentsMargins(0, 0, 0, 0)
+        self.project_header_layout.setSpacing(12)
+        self.project_header_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)  # Center vertically
+        
+        # Project name (left-aligned)
+        self.project_name_label = QLabel("FFMigo Video Editor")
+        self.project_name_label.setStyleSheet("font-size: 32px; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px; color: #e6eaf3;")
+        self.project_name_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.project_header_layout.addWidget(self.project_name_label)
+        
+        # Edit button (pen icon)
+        self.edit_project_btn = QPushButton()
+        self.edit_project_btn.setObjectName("ProjectEditButton")
+        self.edit_project_btn.setFixedSize(32, 32)
+        self.edit_project_btn.setIconSize(QSize(20, 20))
+        self.edit_project_btn.setToolTip("Edit project name")
+        self.edit_project_btn.clicked.connect(self.edit_project_name)
+        self.edit_project_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        
+        # Set edit icon using inline SVG (like chat buttons)
+        edit_svg_data = '''<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>'''
+        edit_pixmap = QPixmap()
+        edit_pixmap.loadFromData(bytes(edit_svg_data, encoding='utf-8'), "SVG")
+        self.edit_project_btn.setIcon(QIcon(edit_pixmap))
+        
+        self.project_header_layout.addWidget(self.edit_project_btn)
+        
+        # Add stretch to push delete button to right
+        self.project_header_layout.addStretch(1)
+        
+        # Delete button (right-aligned)
+        self.delete_project_btn = QPushButton()
+        self.delete_project_btn.setObjectName("ProjectDeleteButton")
+        self.delete_project_btn.setFixedSize(32, 32)
+        self.delete_project_btn.setIconSize(QSize(20, 20))
+        self.delete_project_btn.setToolTip("Delete project")
+        self.delete_project_btn.clicked.connect(self.delete_current_project)
+        self.delete_project_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        
+        # Set delete icon using inline SVG (like chat buttons)
+        delete_svg_data = '''<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M3 6h18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="10" y1="11" x2="10" y2="17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="14" y1="11" x2="14" y2="17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>'''
+        delete_pixmap = QPixmap()
+        delete_pixmap.loadFromData(bytes(delete_svg_data, encoding='utf-8'), "SVG")
+        self.delete_project_btn.setIcon(QIcon(delete_pixmap))
+        
+        self.project_header_layout.addWidget(self.delete_project_btn)
+        
+        # Initially hide edit and delete buttons
+        self.edit_project_btn.hide()
+        self.delete_project_btn.hide()
+        
+        self.vbox.addWidget(self.project_header)
         # Drag-and-drop area
         self.dragdrop = DragDropWidget()
         self.dragdrop.file_dropped.connect(self.on_file_dropped)
         self.vbox.addWidget(self.dragdrop, stretch=7)
-        # Video player area (hidden until video loaded)
+        # Main content area with adjustable splitter
+        self.main_content_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.main_content_splitter.setHandleWidth(4)  # Increased handle width for better visual separation
+        self.main_content_splitter.setChildrenCollapsible(True)
+        
+        # Left side: Video player area
         self.video_player_widget = QWidget()
+        self.video_player_widget.setObjectName("VideoPlayerContainer")
         self.video_player_layout = QVBoxLayout(self.video_player_widget)
-        self.video_player_layout.setContentsMargins(0, 0, 0, 0)  # Remove extra margins
+        self.video_player_layout.setContentsMargins(0, 0, 8, 0)  # Add right margin
+        self.video_player_layout.setSpacing(8)
+        
+        # Video widget
         self.video_widget = QVideoWidget()
-        self.video_widget.setMinimumHeight(360)
-        self.video_player_layout.addWidget(self.video_widget)
-        # Modern media control bar
+        self.video_widget.setMinimumHeight(400)
+        self.video_widget.setObjectName("VideoWidget")
+        self.video_player_layout.addWidget(self.video_widget, stretch=1)
+        
+        # Modern media control bar (simplified)
         self.media_controls = QWidget()
+        self.media_controls.setObjectName("MediaControls")
         self.media_controls_layout = QHBoxLayout(self.media_controls)
-        self.media_controls_layout.setContentsMargins(0, 0, 0, 0)
+        self.media_controls_layout.setContentsMargins(8, 8, 8, 8)
+        self.media_controls_layout.setSpacing(8)
+        
         # Play/Pause icon button
         self.play_pause_btn = QPushButton()
         self.play_pause_btn.setObjectName("PlayPauseButton")
         self.play_pause_btn.setIcon(QIcon.fromTheme("media-playback-start"))
         self.play_pause_btn.setFixedSize(40, 40)
         self.play_pause_btn.clicked.connect(self.toggle_play_pause)
+        self.play_pause_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.media_controls_layout.addWidget(self.play_pause_btn)
+        
         # Seek slider
         self.seek_slider = QSlider(Qt.Orientation.Horizontal)
         self.seek_slider.setRange(0, 100)
@@ -343,10 +420,12 @@ class MainWindow(QMainWindow):
         self.seek_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.seek_slider.sliderMoved.connect(self.seek_position)
         self.media_controls_layout.addWidget(self.seek_slider)
+        
         # Time label
         self.time_label = QLabel("00:00 / 00:00")
         self.time_label.setObjectName("TimeLabel")
         self.media_controls_layout.addWidget(self.time_label)
+        
         # Volume slider
         self.volume_slider = QSlider(Qt.Orientation.Horizontal)
         self.volume_slider.setRange(0, 100)
@@ -354,32 +433,44 @@ class MainWindow(QMainWindow):
         self.volume_slider.setFixedWidth(80)
         self.volume_slider.valueChanged.connect(self.set_volume)
         self.media_controls_layout.addWidget(self.volume_slider)
+        
         # Fullscreen button
         self.fullscreen_btn = QPushButton()
         self.fullscreen_btn.setObjectName("FullscreenButton")
         self.fullscreen_btn.setIcon(QIcon.fromTheme("view-fullscreen"))
         self.fullscreen_btn.setFixedSize(36, 36)
         self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
+        self.fullscreen_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.media_controls_layout.addWidget(self.fullscreen_btn)
-        # Checkpoint button
-        self.checkpoint_btn = QPushButton("Checkpoints")
-        self.checkpoint_btn.setObjectName("CheckpointButton")
-        self.checkpoint_btn.setFixedHeight(36)
-        self.checkpoint_btn.clicked.connect(self.open_checkpoints)
-        self.checkpoint_btn.setEnabled(False)
-        self.media_controls_layout.addWidget(self.checkpoint_btn)
         
-        # Export button (only enabled after processing)
-        self.export_btn = QPushButton("Export")
-        self.export_btn.setObjectName("ExportButton")
-        self.export_btn.setFixedHeight(36)
-        self.export_btn.clicked.connect(self.export_processed_video)
-        self.export_btn.setEnabled(False)
-        self.media_controls_layout.addWidget(self.export_btn)
         self.media_controls.hide()
         self.video_player_layout.addWidget(self.media_controls)
+        
+        # Right side: Terminal area
+        self.terminal_widget = QWidget()
+        self.terminal_widget.setObjectName("TerminalContainer")
+        self.terminal_layout = QVBoxLayout(self.terminal_widget)
+        self.terminal_layout.setContentsMargins(8, 0, 0, 0)  # Add left margin
+        self.terminal_layout.setSpacing(8)
+        
+        # Chat log display (terminal)
+        self.chat_log = QTextEdit()
+        self.chat_log.setReadOnly(True)
+        self.chat_log.setMinimumHeight(200)  # Reduced height
+        self.chat_log.setObjectName("ChatLog")
+        self.chat_log.setContentsMargins(0, 0, 0, 0)
+        self.terminal_layout.addWidget(self.chat_log, stretch=1)
+        
+        # Add both widgets to the splitter
+        self.main_content_splitter.addWidget(self.video_player_widget)
+        self.main_content_splitter.addWidget(self.terminal_widget)
+        
+        # Set initial splitter proportions (60% video, 40% terminal)
+        self.main_content_splitter.setSizes([700, 300])
+        
         self.video_player_widget.hide()
-        self.vbox.addWidget(self.video_player_widget, stretch=7)
+        self.terminal_widget.hide()
+        self.vbox.addWidget(self.main_content_splitter, stretch=1)
         # Media player setup
         self.media_player = QMediaPlayer()
         self.audio_output = QAudioOutput()
@@ -393,37 +484,193 @@ class MainWindow(QMainWindow):
         self.timer = QTimer()
         self.timer.setInterval(500)
         self.timer.timeout.connect(self.update_time_label)
-        # Chat log display
-        self.chat_log = QTextEdit()
-        self.chat_log.setReadOnly(True)
-        self.chat_log.setMinimumHeight(120)
-        self.chat_log.setObjectName("ChatLog")
-        self.chat_log.setContentsMargins(0, 0, 0, 0)  # Remove extra margins
-        self.vbox.addWidget(self.chat_log, stretch=2)
-        # Chat input area
-        chat_area = QWidget()
-        chat_layout = QHBoxLayout(chat_area)
-        chat_layout.setContentsMargins(0, 0, 0, 0)  # Remove extra margins
+        # Chat input area - ChatGPT-style design
+        self.chat_area = QWidget()
+        self.chat_area.setObjectName("ChatInputArea")
+        chat_layout = QVBoxLayout(self.chat_area)
+        chat_layout.setContentsMargins(0, 0, 0, 0)
+        chat_layout.setSpacing(30)
+        
+        # Horizontal separator line
+        self.action_separator = QFrame()
+        self.action_separator.setFrameShape(QFrame.Shape.HLine)
+        self.action_separator.setFrameShadow(QFrame.Shadow.Sunken)
+        self.action_separator.setObjectName("ActionSeparator")
+        self.action_separator.setFixedHeight(4)
+        self.action_separator.hide()  # Initially hidden
+        
+        # Action buttons row - will be positioned at bottom
+        self.action_buttons = QWidget()
+        self.action_buttons.setObjectName("ActionButtons")
+        self.action_buttons_layout = QHBoxLayout(self.action_buttons)
+        self.action_buttons_layout.setContentsMargins(0, 0, 0, 0)
+        self.action_buttons_layout.setSpacing(5)
+        
+        # Checkpoint button (icon only)
+        self.checkpoint_btn = QPushButton()
+        self.checkpoint_btn.setObjectName("ActionButton")
+        self.checkpoint_btn.setFixedSize(36, 36)
+        self.checkpoint_btn.setToolTip("Checkpoints")
+        self.checkpoint_btn.clicked.connect(self.open_checkpoints)
+        self.checkpoint_btn.setEnabled(False)
+        self.checkpoint_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        # Set checkpoint icon
+        checkpoint_svg_data = '''<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" stroke="white" stroke-width="2"/></svg>'''
+        checkpoint_pixmap = QPixmap()
+        checkpoint_pixmap.loadFromData(bytes(checkpoint_svg_data, encoding='utf-8'), "SVG")
+        self.checkpoint_btn.setIcon(QIcon(checkpoint_pixmap))
+        self.checkpoint_btn.setIconSize(QSize(20, 20))
+        self.action_buttons_layout.addWidget(self.checkpoint_btn)
+        
+        # Undo button (icon only)
+        self.undo_btn = QPushButton()
+        self.undo_btn.setObjectName("ActionButton")
+        self.undo_btn.setFixedSize(36, 36)
+        self.undo_btn.setToolTip("Undo last command")
+        self.undo_btn.clicked.connect(self.undo_last_command)
+        self.undo_btn.setEnabled(False)
+        self.undo_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        # Set undo icon
+        undo_svg_data = '''<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 7v6h6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'''
+        undo_pixmap = QPixmap()
+        undo_pixmap.loadFromData(bytes(undo_svg_data, encoding='utf-8'), "SVG")
+        self.undo_btn.setIcon(QIcon(undo_pixmap))
+        self.undo_btn.setIconSize(QSize(20, 20))
+        self.action_buttons_layout.addWidget(self.undo_btn)
+        
+        # Export button (icon only)
+        self.export_btn = QPushButton()
+        self.export_btn.setObjectName("ActionButton")
+        self.export_btn.setFixedSize(36, 36)
+        self.export_btn.setToolTip("Export video")
+        self.export_btn.clicked.connect(self.export_processed_video)
+        self.export_btn.setEnabled(False)
+        self.export_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        # Set export icon
+        export_svg_data = '''<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="7,10 12,15 17,10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="15" x2="12" y2="3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'''
+        export_pixmap = QPixmap()
+        export_pixmap.loadFromData(bytes(export_svg_data, encoding='utf-8'), "SVG")
+        self.export_btn.setIcon(QIcon(export_pixmap))
+        self.export_btn.setIconSize(QSize(20, 20))
+        self.action_buttons_layout.addWidget(self.export_btn)
+        
+        # Open Project Directory button (icon only)
+        self.open_dir_btn = QPushButton()
+        self.open_dir_btn.setObjectName("ActionButton")
+        self.open_dir_btn.setFixedSize(36, 36)
+        self.open_dir_btn.setToolTip("Open project directory")
+        self.open_dir_btn.clicked.connect(self.open_project_directory)
+        self.open_dir_btn.setEnabled(False)
+        self.open_dir_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        # Set folder icon
+        folder_svg_data = '''<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'''
+        folder_pixmap = QPixmap()
+        folder_pixmap.loadFromData(bytes(folder_svg_data, encoding='utf-8'), "SVG")
+        self.open_dir_btn.setIcon(QIcon(folder_pixmap))
+        self.open_dir_btn.setIconSize(QSize(20, 20))
+        self.action_buttons_layout.addWidget(self.open_dir_btn)
+        
+        self.action_buttons_layout.addStretch(1)  # Push buttons to the left
+        self.action_buttons.hide()  # Initially hidden
+        
+        # Attachment chips bar (hidden when empty)
+        self.attachment_bar = QWidget()
+        self.attachment_bar.setObjectName("AttachmentBar")
+        self.attachment_bar_layout = QHBoxLayout(self.attachment_bar)
+        self.attachment_bar_layout.setContentsMargins(8, 4, 8, 4)  # Reduced padding
+        self.attachment_bar_layout.setSpacing(2)  # Reduced spacing
+        self.attachment_bar.hide()
+        
+        
+        # Main input container with ChatGPT-style design
+        input_container = QWidget()
+        input_container.setObjectName("ChatInputContainer")
+        input_layout = QVBoxLayout(input_container)  # Changed to VBoxLayout
+        input_layout.setContentsMargins(8, 8, 8, 8)  # Back to original padding
+        input_layout.setSpacing(8)  # Back to original spacing
+        
+        # Top: Text input area (full width)
         self.chat_input = QTextEdit()
         self.chat_input.setPlaceholderText("Type your video editing command here...")
-        self.chat_input.setFixedHeight(60)
+        self.chat_input.setFixedHeight(24)  # Reduced height for max 3 lines
         self.chat_input.setDisabled(True)
         self.chat_input.setObjectName("ChatInput")
         self.chat_input.installEventFilter(self)
-        chat_layout.addWidget(self.chat_input, stretch=1)
-        self.vbox.addWidget(chat_area, stretch=3)
+        self.chat_input.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.chat_input.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.chat_input.textChanged.connect(self.on_chat_input_changed)
+        input_layout.addWidget(self.chat_input)
+        
+        # Bottom: Button footer
+        button_footer = QWidget()
+        button_footer.setObjectName("ChatButtonFooter")
+        button_layout = QHBoxLayout(button_footer)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(0)
+        
+        # Left: Attach button
+        self.attach_btn = QPushButton("+")
+        self.attach_btn.setObjectName("ChatAttachButton")
+        self.attach_btn.setFixedSize(32, 32)
+        self.attach_btn.setToolTip("Attach files")
+        self.attach_btn.clicked.connect(self.on_attach_clicked)
+        self.attach_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        button_layout.addWidget(self.attach_btn)
+        
+        # Spacer to push send button to the right
+        button_layout.addStretch(1)
+        
+        # Right: Send button
+        self.send_btn = QPushButton("↑")
+        self.send_btn.setObjectName("ChatSendButton")
+        self.send_btn.setFixedSize(32, 32)
+        self.send_btn.setToolTip("Send message")
+        self.send_btn.clicked.connect(self.on_send_clicked)
+        self.send_btn.setEnabled(False)
+        self.send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        button_layout.addWidget(self.send_btn)
+        
+        input_layout.addWidget(button_footer)
+        
+        chat_layout.addWidget(self.action_separator)  # Add separator above action buttons
+        chat_layout.addWidget(self.action_buttons)  # Add action buttons above chat input
+        chat_layout.addWidget(self.attachment_bar)
+        chat_layout.addWidget(input_container)
+        self.vbox.addWidget(self.chat_area, stretch=0)
         
         # State
         self.project_dir = None
         self.input_path = None
         self.input_ext = None
         self.processed_path_file = None
+        self.pending_attachments = []  # list of dicts: {name, type, abs_path, rel_path}
+        self.input_video_analysis = None  # Cache for input video analysis
         self.process_result_ready.connect(self.on_process_result_ready)
         self.refresh_project_list()
         splitter.addWidget(self.main_area)  # <-- Ensure main area is visible
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
+        
+        # Set initial UI state for no project
+        self.set_ui_state_for_no_project()
+        
         self.showMaximized()  # Start maximized, preferred for desktop apps
+
+    def update_window_title(self):
+        """Update the window title and heading based on current project"""
+        if self.project_dir:
+            project_name = project_manager.get_project_name(self.project_dir)
+            self.setWindowTitle(f"FFMigo Video Editor - {project_name}")
+            self.project_name_label.setText(f"{project_name}")
+            # Show edit and delete buttons when project is loaded
+            self.edit_project_btn.show()
+            self.delete_project_btn.show()
+        else:
+            self.setWindowTitle("FFMigo Video Editor")
+            self.project_name_label.setText("FFMigo Video Editor")
+            # Hide edit and delete buttons when no project is loaded
+            self.edit_project_btn.hide()
+            self.delete_project_btn.hide()
 
     def on_file_dropped(self, file_path):
         # Create project dir and copy video
@@ -431,36 +678,162 @@ class MainWindow(QMainWindow):
         self.input_path = project_manager.copy_video_to_project(file_path, self.project_dir)
         self.input_ext = os.path.splitext(self.input_path)[1][1:]  # e.g. 'mp4'
         self.processed_path_file = self.input_path  # Set for export functionality
-        # Hide drag-and-drop, show video player
-        self.dragdrop.hide()
-        self.video_player_widget.show()
+        
+        # Initialize video analysis cache
+        from backend import video_analyzer
+        video_analyzer.init_cache(self.project_dir)
+        
+        # Analyze the input video on first load
+        self.input_video_analysis = video_analyzer.analyze_video(self.input_path)
+        if self.input_video_analysis:
+            summary = video_analyzer.get_video_summary(self.input_video_analysis)
+            print(f"[INFO] Input video analysis: {summary}")
+        
+        # Set UI state for project loaded
+        self.set_ui_state_for_project_loaded()
+        
+        # Load video and update UI
         self.load_video(self.input_path)
-        self.media_controls.show()
-        self.export_btn.setEnabled(False)
-        self.checkpoint_btn.setEnabled(True)  # Enable checkpoints when video is loaded
-        self.chat_input.setDisabled(False)
         self.chat_log.clear()
         self.append_chat_log("System", "Video loaded. Ready for commands.")
         self.refresh_project_list(select=self.project_dir)
+        self.update_window_title()
 
     def append_chat_log(self, sender, message):
         from datetime import datetime
         ts = datetime.now().strftime('%H:%M:%S')
         if sender == "User":
-            # Use objectName for QSS targeting
-            self.chat_log.append(f'<div class="UserBubble"><b>User [{ts}]:</b> {message}</div>')
+            # Terminal-style user input
+            self.chat_log.append(f'<div class="UserBubble">$ {message}</div>')
         elif sender == "System":
-            self.chat_log.append(f'<div class="SystemBubble"><b>System [{ts}]:</b> {message}</div>')
+            # Terminal-style system output
+            self.chat_log.append(f'<div class="SystemBubble">[{ts}] {message}</div>')
         elif sender == "Command":
-            self.chat_log.append(f'<div class="CommandBubble">{message}</div>')
+            # Terminal-style command output
+            self.chat_log.append(f'<div class="CommandBubble">> {message}</div>')
         elif sender == "Error":
-            self.chat_log.append(f'<div class="ErrorBubble"><b>Error [{ts}]:</b> {message}</div>')
+            # Terminal-style error output
+            self.chat_log.append(f'<div class="ErrorBubble">ERROR: {message}</div>')
         self.chat_log.verticalScrollBar().setValue(self.chat_log.verticalScrollBar().maximum())
+
+    def _make_attachment_chip(self, att, index):
+        from PyQt6.QtWidgets import QWidget, QHBoxLayout
+        chip = QWidget()
+        chip.setObjectName("AttachmentChip")
+        layout = QHBoxLayout(chip)
+        layout.setContentsMargins(8, 4, 8, 4)  # Reduced padding
+        layout.setSpacing(6)  # Reduced spacing
+        
+        # File type icon
+        icon_lbl = QLabel()
+        icon_lbl.setFixedSize(16, 16)
+        icon_lbl.setObjectName("AttachmentIcon")
+        
+        # Set appropriate icon based on file type
+        file_type = att.get('type', 'file')
+        if file_type == 'image':
+            icon_lbl.setText("🖼️")
+        elif file_type == 'video':
+            icon_lbl.setText("🎬")
+        elif file_type == 'audio':
+            icon_lbl.setText("🎵")
+        elif file_type == 'subtitle':
+            icon_lbl.setText("📝")
+        elif file_type == 'text':
+            icon_lbl.setText("📄")
+        else:
+            icon_lbl.setText("📎")
+        
+        layout.addWidget(icon_lbl)
+        
+        # File name (truncated if too long)
+        name_lbl = QLabel(att.get('name', ''))
+        name_lbl.setToolTip(att.get('name', ''))
+        name_lbl.setObjectName("AttachmentName")
+        layout.addWidget(name_lbl)
+        
+        # Remove button
+        remove_btn = QPushButton("×")
+        remove_btn.setObjectName("AttachmentRemoveButton")
+        remove_btn.setFixedSize(18, 18)
+        remove_btn.setToolTip("Remove attachment")
+        remove_btn.clicked.connect(lambda: self.remove_attachment(index))
+        layout.addWidget(remove_btn)
+        
+        return chip
+
+    def refresh_attachment_chips(self):
+        # Clear existing
+        while self.attachment_bar_layout.count():
+            item = self.attachment_bar_layout.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+        # Rebuild
+        if not self.pending_attachments:
+            self.attachment_bar.hide()
+            self.attach_btn.setProperty("active", False)
+            self.attach_btn.style().unpolish(self.attach_btn)
+            self.attach_btn.style().polish(self.attach_btn)
+            return
+        for idx, att in enumerate(self.pending_attachments):
+            self.attachment_bar_layout.addWidget(self._make_attachment_chip(att, idx))
+        self.attachment_bar.show()
+        # Highlight attach button when attachments are present
+        self.attach_btn.setProperty("active", True)
+        self.attach_btn.style().unpolish(self.attach_btn)
+        self.attach_btn.style().polish(self.attach_btn)
+
+    def remove_attachment(self, index):
+        try:
+            if 0 <= index < len(self.pending_attachments):
+                removed = self.pending_attachments.pop(index)
+                print(f"[INFO] Removed attachment: {removed}")
+                self.refresh_attachment_chips()
+        except Exception as e:
+            print(f"[WARNING] Failed to remove attachment at {index}: {e}")
+
+    def on_attach_clicked(self):
+        if not self.project_dir:
+            QMessageBox.warning(self, "No Project", "Please load or create a project first.")
+            return
+        dialog = QFileDialog(self)
+        dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
+        dialog.setNameFilter("Supported Files (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.mp4 *.mov *.avi *.mkv *.webm *.flv *.wmv *.mp3 *.wav *.aac *.flac *.txt *.srt *.ass *.vtt)")
+        if dialog.exec():
+            files = dialog.selectedFiles()
+            for f in files:
+                try:
+                    rel_path, abs_path = project_manager.copy_asset_to_project(f, self.project_dir)
+                    file_ext = os.path.splitext(f)[1].lower()
+                    if file_ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg', '.webp']:
+                        file_type = 'image'
+                    elif file_ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv']:
+                        file_type = 'video'
+                    elif file_ext in ['.mp3', '.wav', '.aac', '.flac']:
+                        file_type = 'audio'
+                    elif file_ext in ['.srt', '.ass', '.vtt']:
+                        file_type = 'subtitle'
+                    elif file_ext in ['.txt']:
+                        file_type = 'text'
+                    else:
+                        file_type = 'file'
+                    att = {
+                        'name': os.path.basename(f),
+                        'type': file_type,
+                        'abs_path': abs_path,
+                        'rel_path': rel_path,
+                    }
+                    self.pending_attachments.append(att)
+                except Exception as e:
+                    QMessageBox.warning(self, "Attachment Failed", f"Could not attach {os.path.basename(f)}: {e}")
+            self.refresh_attachment_chips()
 
     def on_send_clicked(self):
         user_text = self.chat_input.toPlainText().strip()
         if not user_text:
             return
+        # Only show user's message; attachments are visually represented as chips in the input bar
         self.append_chat_log("User", user_text)
         self.chat_input.clear()
         self.chat_input.setDisabled(True)
@@ -617,6 +990,40 @@ class MainWindow(QMainWindow):
         dlg.checkpoint_restored.connect(self.on_checkpoint_restored)
         dlg.exec()
 
+    def undo_last_command(self):
+        """Undo the last command by restoring to the latest checkpoint"""
+        if not self.project_dir:
+            return
+            
+        # Get all checkpoints and find the latest one
+        checkpoints = project_manager.list_checkpoints(self.project_dir)
+        if not checkpoints:
+            QMessageBox.information(self, "No Undo Available", "No checkpoints available to undo to.")
+            return
+        
+        # Get the latest checkpoint (highest number)
+        latest_checkpoint_num = checkpoints[-1][0]
+        latest_meta = checkpoints[-1][1]
+        
+        # Show confirmation dialog
+        reply = QMessageBox.question(
+            self, 
+            "Confirm Undo", 
+            f"Are you sure you want to undo the last command?\n\nThis will restore to Checkpoint {latest_checkpoint_num}:\n'{latest_meta.get('user_command', 'Unknown operation')}'\n\nAll changes after this point will be lost.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            # Use the existing restore checkpoint logic
+            success, result = project_manager.restore_checkpoint(self.project_dir, latest_checkpoint_num)
+            
+            if success:
+                # Use the existing checkpoint restored handler
+                self.on_checkpoint_restored(latest_checkpoint_num, result)
+            else:
+                QMessageBox.warning(self, "Undo Failed", f"Failed to undo: {result}")
+
     def on_checkpoint_restored(self, checkpoint_num, restored_file_path):
         """Handle checkpoint restoration"""
         print(f"[INFO] Checkpoint {checkpoint_num} restored to {restored_file_path}")
@@ -644,6 +1051,7 @@ class MainWindow(QMainWindow):
         self.load_video(self.input_path)
         self.export_btn.setEnabled(True)
         self.checkpoint_btn.setEnabled(True)
+        self.undo_btn.setEnabled(True)  # Enable undo after restoration
         
         # Clear chat log and add restoration message
         self.chat_log.clear()
@@ -664,6 +1072,7 @@ class MainWindow(QMainWindow):
             self.load_video(video_path)
             self.media_controls.show()
             self.export_btn.setEnabled(True)
+            self.open_dir_btn.setEnabled(True)  # Keep open directory enabled after processing
             self.checkpoint_btn.setEnabled(True)  # Enable checkpoints after processing
             self.processed_path_file = video_path  # Update for export functionality
             print(f'[DEBUG] update_processed_video: loaded {video_path} and updated controls')
@@ -718,6 +1127,28 @@ class MainWindow(QMainWindow):
         if error:
             QMessageBox.warning(self, "Playback Error", self.media_player.errorString())
 
+    def open_project_directory(self):
+        """Open the current project directory in the system file explorer"""
+        if not self.project_dir:
+            QMessageBox.warning(self, "No Project", "No project is currently loaded.")
+            return
+        
+        try:
+            import subprocess
+            import platform
+            
+            if platform.system() == "Windows":
+                subprocess.run(["explorer", self.project_dir])
+            elif platform.system() == "Darwin":  # macOS
+                subprocess.run(["open", self.project_dir])
+            else:  # Linux
+                subprocess.run(["xdg-open", self.project_dir])
+                
+            print(f"[INFO] Opened project directory: {self.project_dir}")
+        except Exception as e:
+            print(f"[ERROR] Failed to open project directory: {e}")
+            QMessageBox.warning(self, "Error", f"Could not open project directory: {e}")
+
     def export_processed_video(self):
         print("EXPORT BUTTON CLICKED!")
         print(f"[DEBUG] export_processed_video: input_path={self.input_path}")
@@ -752,17 +1183,17 @@ class MainWindow(QMainWindow):
         else:
             print("EXPORT CANCELLED: User cancelled file dialog")
 
-    def process_command(self, user_text):
+    def process_command(self, user_text, retry_count=0):
         # Use config values
-        print(f"[INFO] User command: {user_text}")
+        print(f"[INFO] User command: {user_text} (retry #{retry_count})")
         provider = self.app_config.get("provider", "Ollama")
         endpoint = self.app_config.get("llm_endpoint", "http://localhost:11434/api/generate")
         model = self.app_config.get("llm_model", "llama3")
         api_key = self.app_config.get("api_key", None)
         ffmpeg_path = self.app_config.get("ffmpeg_path", "ffmpeg")
         
-        # Create checkpoint before processing
-        if self.project_dir and self.input_path:
+        # Create checkpoint before processing (only on first attempt)
+        if retry_count == 0 and self.project_dir and self.input_path:
             try:
                 checkpoint_num = project_manager.create_checkpoint(
                     self.project_dir, 
@@ -774,16 +1205,80 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 print(f"[WARNING] Failed to create checkpoint: {e}")
         
+        # Build attachments payload (use rel paths for ffmpeg working dir)
+        attachments_payload = []
+        attachment_video_info = {}
+        try:
+            from backend import video_analyzer
+            for a in self.pending_attachments:
+                attachments_payload.append({
+                    'name': a.get('name',''),
+                    'type': a.get('type','file'),
+                    'rel_path': a.get('rel_path','')
+                })
+                # Analyze attached video/audio files
+                if a.get('type') in ['video', 'audio']:
+                    analysis = video_analyzer.analyze_video(a.get('abs_path'))
+                    if analysis:
+                        summary = video_analyzer.get_video_summary(analysis)
+                        attachment_video_info[a.get('rel_path')] = summary
+                        print(f"[INFO] Attached {a.get('type')} analysis: {summary}")
+        except Exception as e:
+            print(f"[WARNING] Failed building attachments payload: {e}")
+        
+        # Prepare video analysis info for LLM
+        input_video_info = None
+        if self.input_video_analysis:
+            from backend import video_analyzer
+            input_video_info = video_analyzer.get_video_summary(self.input_video_analysis)
+        
         # Get FFmpeg command from LLM
         try:
             import os
             input_filename = os.path.basename(self.input_path)
             print(f"[DEBUG] Using input file for FFmpeg command: {input_filename}")
-            ffmpeg_cmd = llm_client.get_ffmpeg_command(user_text, input_filename, self.input_ext, endpoint, model, provider, api_key)
+            
+            if hasattr(self, '_last_failed_command') and hasattr(self, '_last_error') and retry_count > 0:
+                # This is a retry attempt - use retry function
+                ffmpeg_cmd = llm_client.retry_ffmpeg_command(
+                    self._last_failed_command,
+                    self._last_error,
+                    user_text,
+                    input_filename,
+                    self.input_ext,
+                    endpoint,
+                    model,
+                    provider,
+                    api_key,
+                    attachments=attachments_payload,
+                    input_video_info=input_video_info,
+                    attachment_video_info=attachment_video_info if attachment_video_info else None
+                )
+            else:
+                # First attempt - use normal function
+                ffmpeg_cmd = llm_client.get_ffmpeg_command(
+                    user_text,
+                    input_filename,
+                    self.input_ext,
+                    endpoint,
+                    model,
+                    provider,
+                    api_key,
+                    attachments=attachments_payload,
+                    input_video_info=input_video_info,
+                    attachment_video_info=attachment_video_info if attachment_video_info else None
+                )
         except Exception as e:
             print(f"[ERROR] Exception in get_ffmpeg_command: {e}")
             self.process_result_ready.emit({'error': f'LLM error: {e}'})
             return
+        finally:
+            # Clear attachments once the command has been generated/attempted (only on first try)
+            if retry_count == 0:
+                self.pending_attachments = []
+                # Update chips UI on main thread
+                from PyQt6.QtCore import QTimer
+                QTimer.singleShot(0, self.refresh_attachment_chips)
         if not ffmpeg_cmd:
             print("[ERROR] Failed to get command from LLM.")
             self.process_result_ready.emit({'error': 'Failed to get command from LLM.'})
@@ -809,14 +1304,39 @@ class MainWindow(QMainWindow):
             self.process_result_ready.emit({'error': f'FFmpeg run error: {e}', 'ffmpeg_cmd': ffmpeg_cmd})
             return
         print(f"[INFO] FFmpeg finished. Success: {result.get('success')}")
-        emit_data = {'ffmpeg_cmd': ffmpeg_cmd, 'ffmpeg_result': result, 'user_text': user_text}
+        emit_data = {'ffmpeg_cmd': ffmpeg_cmd, 'ffmpeg_result': result, 'user_text': user_text, 'retry_count': retry_count}
         if not result.get('success'):
-            emit_data['error'] = f"FFmpeg error: {result.get('stderr')}"
+            # Store failed command and error for potential retry
+            self._last_failed_command = ffmpeg_cmd
+            self._last_error = result.get('stderr', 'Unknown error')
+            
+            # Check if we should retry (max 2 retries to prevent infinite loops)
+            if retry_count < 2:
+                print(f"[INFO] FFmpeg failed, attempting retry #{retry_count + 1}")
+                emit_data['retry_attempt'] = True
+                self.process_result_ready.emit(emit_data)
+                # Schedule retry in background thread
+                threading.Thread(target=self.process_command, args=(user_text, retry_count + 1), daemon=True).start()
+                return
+            else:
+                print(f"[ERROR] FFmpeg failed after {retry_count + 1} attempts, giving up")
+                emit_data['error'] = f"FFmpeg error: {result.get('stderr')}"
         else:
+            # Clear retry state on success
+            if hasattr(self, '_last_failed_command'):
+                delattr(self, '_last_failed_command')
+            if hasattr(self, '_last_error'):
+                delattr(self, '_last_error')
             # Move output.ext to a new unique input file for chaining (in background thread)
             try:
                 import shutil
-                output_ext = os.path.splitext(ffmpeg_cmd.split('output.')[1].split()[0])[0]
+                # Extract output extension from command more reliably
+                import re
+                output_match = re.search(r'output\.([a-zA-Z0-9]+)', ffmpeg_cmd)
+                if output_match:
+                    output_ext = output_match.group(1)
+                else:
+                    output_ext = self.input_ext  # fallback to input extension
                 output_file = os.path.join(self.project_dir, f'output.{output_ext}')
                 print(f"[DEBUG] Looking for output file: {output_file}")
                 if not os.path.exists(output_file):
@@ -864,12 +1384,25 @@ class MainWindow(QMainWindow):
             error = data.get('error', None)
             new_input_file = data.get('new_input_file', None)
             new_input_ext = data.get('new_input_ext', None)
-            if user_text:
-                self.append_chat_log("User", user_text)
+            retry_count = data.get('retry_count', 0)
+            retry_attempt = data.get('retry_attempt', False)
+
             if ffmpeg_cmd:
-                self.append_chat_log("Command", ffmpeg_cmd)
+                if retry_count > 0:
+                    self.append_chat_log("Command", f"Retry #{retry_count}: {ffmpeg_cmd}")
+                else:
+                    self.append_chat_log("Command", ffmpeg_cmd)
+                    
+            if retry_attempt:
+                # This is a retry notification - show user that we're retrying
+                self.append_chat_log("System", f"Command failed, retrying with corrected command... (attempt {retry_count + 1}/3)")
+                return  # Don't re-enable input yet, retry is in progress
+                
             if error:
-                self.append_chat_log("Error", error)
+                if retry_count >= 2:
+                    self.append_chat_log("Error", f"Failed after 3 attempts: {error}")
+                else:
+                    self.append_chat_log("Error", error)
                 self.enable_chat_input()
                 print('[DEBUG] on_process_result_ready: error branch, returning')
                 return
@@ -879,7 +1412,12 @@ class MainWindow(QMainWindow):
                     self.input_path = new_input_file
                     self.input_ext = new_input_ext
                     self.update_processed_video(self.input_path)
-                self.append_chat_log("System", "Success!")
+                if retry_count > 0:
+                    self.append_chat_log("System", f"Success on retry #{retry_count}!")
+                else:
+                    self.append_chat_log("System", "Success!")
+                # Enable undo button since a checkpoint was created
+                self.undo_btn.setEnabled(True)
             else:
                 self.append_chat_log("Error", f"FFmpeg error: {ffmpeg_result.get('stderr') if ffmpeg_result else 'Unknown error'}")
             self.enable_chat_input()
@@ -892,11 +1430,68 @@ class MainWindow(QMainWindow):
 
     def enable_chat_input(self):
         self.chat_input.setDisabled(False)
+        self.on_chat_input_changed()
+
+    def on_chat_input_changed(self):
+        """Enable/disable send button based on whether there's text"""
+        text = self.chat_input.toPlainText().strip()
+        self.send_btn.setEnabled(bool(text) and not self.chat_input.isReadOnly())
 
     def refresh_project_list(self, select=None):
         from backend import project_manager
         projects = project_manager.list_projects()
         self.sidebar.set_projects(projects, selected=select or self.project_dir)
+
+    def set_ui_state_for_no_project(self):
+        """Set UI state when no project is loaded (app startup or new project)"""
+        # Hide video-related components
+        self.video_player_widget.hide()
+        self.terminal_widget.hide()
+        self.media_controls.hide()
+        
+        # Disable action buttons
+        self.export_btn.setEnabled(False)
+        self.open_dir_btn.setEnabled(False)
+        self.checkpoint_btn.setEnabled(False)
+        self.undo_btn.setEnabled(False)
+        
+        # Hide action UI elements
+        self.action_separator.hide()
+        self.action_buttons.hide()
+        
+        # Hide chat area and title
+        self.chat_area.hide()
+        self.project_name_label.hide()
+        
+        # Show drag and drop area
+        self.dragdrop.show()
+
+    def set_ui_state_for_project_loaded(self):
+        """Set UI state when a project is loaded with video"""
+        # Hide drag and drop area
+        self.dragdrop.hide()
+        
+        # Show video-related components
+        self.video_player_widget.show()
+        self.terminal_widget.show()
+        self.media_controls.show()
+        
+        # Enable action buttons
+        self.export_btn.setEnabled(False)  # Will be enabled after processing
+        self.open_dir_btn.setEnabled(True)
+        self.checkpoint_btn.setEnabled(True)
+        self.undo_btn.setEnabled(False)  # No checkpoints yet for undo
+        
+        # Show action UI elements
+        self.action_separator.show()
+        self.action_buttons.show()
+        
+        # Show chat area and title
+        self.chat_area.show()
+        self.project_name_label.show()
+        
+        # Enable chat input
+        self.chat_input.setDisabled(False)
 
     def create_new_project(self):
         # Reset state and show drag-and-drop area for a new project
@@ -904,14 +1499,16 @@ class MainWindow(QMainWindow):
         self.input_path = None
         self.input_ext = None
         self.processed_path_file = None
-        self.dragdrop.show()
-        self.video_player_widget.hide()
-        self.media_controls.hide()
-        self.export_btn.setEnabled(False)
-        self.checkpoint_btn.setEnabled(False)  # Disable checkpoints for new project
-        self.chat_input.setDisabled(False)
+        self.pending_attachments = [] # Clear attachments for new project
+        self.input_video_analysis = None  # Clear video analysis
+        
+        # Set UI state for no project
+        self.set_ui_state_for_no_project()
+        
+        # Clear chat and show message
         self.chat_log.clear()
         self.append_chat_log("System", "Create a new project by dragging and dropping a video file.")
+        self.update_window_title()
 
     def rename_project(self, proj_dir):
         from PyQt6.QtWidgets import QInputDialog
@@ -921,6 +1518,9 @@ class MainWindow(QMainWindow):
         if ok and new_name and new_name != cur_name:
             project_manager.rename_project(proj_dir, new_name)
             self.refresh_project_list(select=proj_dir)
+            # Update window title if this is the currently loaded project
+            if self.project_dir == proj_dir:
+                self.update_window_title()
 
     def delete_project(self, proj_dir):
         from PyQt6.QtWidgets import QMessageBox
@@ -934,8 +1534,19 @@ class MainWindow(QMainWindow):
                 if self.project_dir == proj_dir:
                     self.create_new_project()
                 self.refresh_project_list()
+                self.update_window_title()
             except Exception as e:
                 QMessageBox.warning(self, "Delete Failed", f"Could not delete project: {e}")
+
+    def edit_project_name(self):
+        """Edit the name of the currently loaded project"""
+        if self.project_dir:
+            self.rename_project(self.project_dir)
+
+    def delete_current_project(self):
+        """Delete the currently loaded project"""
+        if self.project_dir:
+            self.delete_project(self.project_dir)
 
     def load_project(self, proj_dir):
         import os
@@ -979,22 +1590,35 @@ class MainWindow(QMainWindow):
         self.input_ext = input_ext
         self.processed_path_file = input_path  # Update processed_path_file for export
         
-        # Hide drag-and-drop, show video player
-        self.dragdrop.hide()
-        self.video_player_widget.show()
+        # Initialize video analysis cache and analyze current input
+        from backend import video_analyzer
+        video_analyzer.init_cache(self.project_dir)
+        self.input_video_analysis = video_analyzer.analyze_video(self.input_path)
+        if self.input_video_analysis:
+            summary = video_analyzer.get_video_summary(self.input_video_analysis)
+            print(f"[INFO] Loaded project input video analysis: {summary}")
+        
+        # Set UI state for project loaded
+        self.set_ui_state_for_project_loaded()
+        
+        # Load video
         self.load_video(self.input_path)
-        self.media_controls.show()
         
         # Enable export button if this is an edited video (has numbered files)
         has_edited_files = latest_input_file.startswith('input_')
         print(f"[DEBUG] load_project: has_edited_files: {has_edited_files}")
         self.export_btn.setEnabled(True)  # Always enable export button
-        self.checkpoint_btn.setEnabled(True)  # Enable checkpoints when project is loaded
+        
+        # Enable undo button if there are checkpoints available
+        checkpoints = project_manager.list_checkpoints(self.project_dir)
+        self.undo_btn.setEnabled(len(checkpoints) > 0)
+        
         print(f"[DEBUG] load_project: export button state: {self.export_btn.isEnabled()}")
         
-        self.chat_input.setDisabled(False)
+        # Clear chat and show message
         self.chat_log.clear()
-        self.append_chat_log("System", "Project loaded. Ready for commands.") 
+        self.append_chat_log("System", "Project loaded. Ready for commands.")
+        self.update_window_title()
 
     def load_video(self, video_path):
         print(f'[DEBUG] load_video: called with {video_path}')
