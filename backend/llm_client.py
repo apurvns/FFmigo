@@ -1,24 +1,85 @@
 import requests
 import re
 
-def get_ffmpeg_command(user_query, input_filename, input_ext, endpoint, model, provider='Ollama', api_key=None):
+
+def get_ffmpeg_command(user_query, input_filename, input_ext, endpoint, model, provider='Ollama', api_key=None, attachments=None, input_video_info=None, attachment_video_info=None):
+    attachments = attachments or []
+    # Build attachments section for the prompt (relative paths usable by ffmpeg working dir)
+    attachments_section = "\n".join([f"- {att.get('type','file')}: {att.get('rel_path','')} (name: {att.get('name','')})" for att in attachments])
+    attachments_block = f"\n\n**Attached Files (relative paths):**\n{attachments_section}\n" if attachments_section else "\n"
+    
+    # Build video information section
+    video_info_block = ""
+    if input_video_info or attachment_video_info:
+        video_info_block = "\n\n**Video Technical Information:**\n"
+        if input_video_info:
+            video_info_block += f"Primary input '{input_filename}': {input_video_info}\n"
+        if attachment_video_info:
+            for rel_path, info in attachment_video_info.items():
+                video_info_block += f"Attached '{rel_path}': {info}\n"
+        video_info_block += "Use this information to ensure compatible parameters when combining videos (matching resolution, frame rate, sample rate).\n"
+
     prompt = f"""
 You are an expert in FFmpeg. Your task is to convert a user's natural language instruction into a single, executable FFmpeg command.
 
 **Constraints:**
-1.  The input file will always be named '{input_filename}' (the extension will vary).
-2.  The output file must always be named 'output.{input_ext}'. You will determine the correct output extension based on the user's request (e.g., 'output.mp4', 'output.gif').
-3.  Do NOT generate any command that could delete or overwrite files outside of the designated output file (e.g., no 'rm', 'mv' commands).
-4.  Do NOT add any explanations, apologies, or extra text. Your response must be ONLY the FFmpeg command.
-5.  The command must not require user interaction (`-y` flag should be used to overwrite the output file automatically).
-6.  Generate command for only what is asked to you do not add anything extra parameters which are unnecessary and not asked to you 
+1. The input file will always be named '{input_filename}' (the extension will vary).
+2. The output file must always be named 'output.{input_ext}'. You will determine the correct output extension based on the user's request (e.g., 'output.mp4', 'output.gif').
+3. Do NOT generate any command that could delete or overwrite files outside of the designated output file (e.g., no 'rm', 'mv' commands).
+4. Do NOT add any explanations, apologies, or extra text. Your response must be ONLY the FFmpeg command.
+5. The command must not require user interaction (`-y` flag should be used to overwrite the output file automatically).
+6. Generate command for only what is asked to you, do not add any additional parameters which are unnecessary neither requested nor necessary.
 
 **User's Request:** "{user_query}"
+{attachments_block}{video_info_block}
+If the user's request references an attached file (e.g., watermark image, secondary video, subtitle or text file or anything else which requires external file input), use the provided relative path(s) exactly as given.
 
 **FFmpeg Command:**
 """
-    import requests
-    import re
+    return _call_llm(prompt, endpoint, model, provider, api_key)
+
+def retry_ffmpeg_command(original_command, error_message, user_query, input_filename, input_ext, endpoint, model, provider='Ollama', api_key=None, attachments=None, input_video_info=None, attachment_video_info=None):
+    """Retry a failed FFmpeg command by asking the LLM to fix it based on the error."""
+    attachments = attachments or []
+    attachments_section = "\n".join([f"- {att.get('type','file')}: {att.get('rel_path','')} (name: {att.get('name','')})" for att in attachments])
+    attachments_block = f"\n\n**Attached Files (relative paths):**\n{attachments_section}\n" if attachments_section else "\n"
+    
+    # Build video information section
+    video_info_block = ""
+    if input_video_info or attachment_video_info:
+        video_info_block = "\n\n**Video Technical Information:**\n"
+        if input_video_info:
+            video_info_block += f"Primary input '{input_filename}': {input_video_info}\n"
+        if attachment_video_info:
+            for rel_path, info in attachment_video_info.items():
+                video_info_block += f"Attached '{rel_path}': {info}\n"
+        video_info_block += "IMPORTANT: Use this technical information to fix parameter mismatches. Scale videos to match primary input resolution/fps, resample audio to match sample rates.\n"
+    
+    # Truncate error message if too long (keep it under 1000 chars to save tokens)
+    truncated_error = error_message[:1000] + "..." if len(error_message) > 1000 else error_message
+    
+    prompt = f"""
+You are an expert in FFmpeg. The previous command failed with an error. Your task is to fix the command and generate a corrected version.
+
+**Constraints:**
+1. The input file will always be named '{input_filename}' (the extension will vary).
+2. The output file must always be named 'output.{input_ext}'.
+3. Do NOT generate any command that could delete or overwrite files outside of the designated output file.
+4. Do NOT add any explanations, apologies, or extra text. Your response must be ONLY the corrected FFmpeg command.
+5. The command must not require user interaction (`-y` flag should be used to overwrite the output file automatically).
+
+**Original User Request:** "{user_query}"
+{attachments_block}{video_info_block}
+**Failed Command:** {original_command}
+
+**Error Message:** {truncated_error}
+
+**Corrected FFmpeg Command:**
+"""
+    return _call_llm(prompt, endpoint, model, provider, api_key)
+
+def _call_llm(prompt, endpoint, model, provider, api_key):
+    """Internal function to make the actual LLM API call."""
     headers = {}
     payload = None
     # Provider-specific logic
@@ -123,6 +184,7 @@ You are an expert in FFmpeg. Your task is to convert a user's natural language i
         return None
     except Exception as e:
         return None
+
 
 def list_ollama_models(endpoint):
     """

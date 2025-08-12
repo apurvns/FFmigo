@@ -3,6 +3,7 @@ import shutil
 import time
 from pathlib import Path
 import json
+import re
 
 def get_projects_root():
     return os.path.expanduser('~/.video-editor-app/projects')
@@ -19,6 +20,40 @@ def copy_video_to_project(src_path, project_dir):
     dst_path = os.path.join(project_dir, f'input{ext}')
     shutil.copy2(src_path, dst_path)
     return dst_path
+
+def _sanitize_filename(name):
+    base, ext = os.path.splitext(name)
+    # Replace any non-safe characters with underscore
+    safe_base = re.sub(r'[^A-Za-z0-9._-]', '_', base)
+    # Prevent empty base
+    if not safe_base:
+        safe_base = 'asset'
+    return safe_base + ext
+
+def copy_asset_to_project(src_path, project_dir):
+    """
+    Copy an arbitrary asset file (image/video/text) into the project's assets directory
+    using a sanitized, unique filename. Returns (relative_path_for_ffmpeg, absolute_path).
+    """
+    assets_dir = os.path.join(project_dir, 'assets')
+    os.makedirs(assets_dir, exist_ok=True)
+
+    original_name = os.path.basename(src_path)
+    sanitized_name = _sanitize_filename(original_name)
+
+    # Ensure uniqueness
+    candidate = sanitized_name
+    name_base, name_ext = os.path.splitext(sanitized_name)
+    idx = 1
+    while os.path.exists(os.path.join(assets_dir, candidate)) and idx < 10000:
+        candidate = f"{name_base}_{idx}{name_ext}"
+        idx += 1
+
+    abs_dst = os.path.join(assets_dir, candidate)
+    shutil.copy2(src_path, abs_dst)
+
+    rel_path = os.path.join('assets', candidate)
+    return rel_path, abs_dst
 
 def list_projects():
     root = get_projects_root()

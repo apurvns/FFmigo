@@ -7,6 +7,8 @@ QWidget {
     border: none;
 }
 
+
+
 #ProjectSidebar {
     background: #120e17;
     border: none;
@@ -53,14 +55,25 @@ QWidget {
 
 QSplitter::handle {
     background: #3a2e4a;
-    width: 2px;
+    width: 3px;
+    margin: 0 2px;
+}
+
+QSplitter::handle:hover {
+    background: #a259ff;
+}
+
+#ActionSeparator {
+    background: #3a2e4a;
+    border: none;
+    margin: 8px 0;
 }
 
 #NewProjectButton {
-    background: #a259ff;
+    background: transparent !important;
+    border: 2px solid #5a4e6a !important;
     color: #fff;
-    border: none;
-    border-radius: 16px;
+    border-radius: 10px;
     padding: 8px 16px;
     margin: 0 8px;
     font-size: 17px;
@@ -76,7 +89,7 @@ QSplitter::handle {
     background: #8b4dff;
 }
 
-#SettingsButton, #ReopenButton, #ExportButton, #PlayPauseButton, #FullscreenButton, #CheckpointButton {
+#SettingsButton, #ReopenButton, #PlayPauseButton, #FullscreenButton {
     background: #2d1e3a;
     color: #fff;
     border: none;
@@ -87,7 +100,7 @@ QSplitter::handle {
     font-weight: 500;
     min-width: 90px;
 }
-#SettingsButton:hover, #ReopenButton:hover, #ExportButton:hover, #PlayPauseButton:hover, #FullscreenButton:hover, #CheckpointButton:hover {
+#SettingsButton:hover, #ReopenButton:hover, #PlayPauseButton:hover, #FullscreenButton:hover {
     background: #a259ff;
     color: #fff;
 }
@@ -107,60 +120,295 @@ QSplitter::handle {
     font-weight: 500;
 }
 
+/* Video Player Container */
+#VideoPlayerContainer {
+    background: #18141d;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+#VideoWidget {
+    background: #000000;
+    border: none;
+    border-radius: 8px;
+    margin: 0;
+    padding: 0;
+}
+
+#MediaControls {
+    background: transparent;
+    border: none;
+    margin: 8px 0 0 0;
+    padding: 0;
+}
+
+/* Terminal Container */
+#TerminalContainer {
+    background: transparent;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+#ActionButtons {
+    background: transparent;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
 #ChatLog {
-    background: #221a2c;
-    border-radius: 18px;
-    padding: 16px;
-    font-size: 16px;
-    margin: 18px 0 0 0;
-    min-height: 120px;
-    border: 1.5px solid #28223a;
+    background: transparent;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    margin: 0;
+    min-height: 200px;
+    color: #e6eaf3;
 }
 .UserBubble {
-    background: #a259ff;
-    color: #fff;
-    border-radius: 20px;
-    padding: 10px 22px;
-    margin: 12px 0 12px 60px;
-    text-align: right;
-    font-weight: 500;
-    font-size: 16px;
+    background: transparent;
+    color: #00ff00;
+    border: none;
+    border-radius: 0;
+    padding: 2px 0;
+    margin: 1px 0;
+    text-align: left;
+    font-weight: 400;
+    font-size: 13px;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 .SystemBubble {
-    background: #2d1e3a;
-    color: #e6eaf3;
-    border-radius: 20px;
-    padding: 10px 22px;
-    margin: 12px 60px 12px 0;
+    background: transparent;
+    color: #ffffff;
+    border: none;
+    border-radius: 0;
+    padding: 2px 0;
+    margin: 1px 0;
     text-align: left;
-    font-size: 16px;
+    font-size: 13px;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 .CommandBubble {
-    background: #221a2c;
-    color: #a3b1d1;
-    border-radius: 16px;
-    padding: 8px 18px;
-    margin: 8px 80px 8px 0;
-    font-family: 'Fira Mono', 'Consolas', monospace;
-    font-size: 15px;
+    background: transparent;
+    color: #00aaff;
+    border: none;
+    border-radius: 0;
+    padding: 2px 0;
+    margin: 1px 0;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
 }
 .ErrorBubble {
-    background: #3a1e2e;
-    color: #ffb3c6;
-    border-radius: 16px;
-    padding: 8px 18px;
-    margin: 8px 80px 8px 0;
-    font-size: 15px;
-}
-#ChatInput {
-    background: #221a2c;
-    color: #fff;
+    background: transparent;
+    color: #ff4444;
     border: none;
-    border-radius: 16px;
-    padding: 14px;
+    border-radius: 0;
+    padding: 2px 0;
+    margin: 1px 0;
+    font-size: 13px;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+/* ChatGPT-style Chat Input Area */
+#ChatInputArea {
+    background: transparent;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+#ChatInputContainer {
+    background: #221a2c;
+    border: 1px solid #3a2e4a;
+    border-radius: 20px;
+    margin: 0;
+    padding: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    max-height:8em;
+}
+
+#ChatInputContainer:focus-within {
+    border-color: #a259ff;
+    box-shadow: 0 0 0 2px rgba(162, 89, 255, 0.2);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#ChatInput {
+    background: transparent;
+    color: #e6eaf3;
+    border: none;
+    border-radius: 0;
+    padding: 2px 0;
+    font-size: 14px;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    line-height: 1.2;
+    margin: 0;
+    min-height: 5em;
+    max-height: 8em;
+}
+
+#ChatInput:focus {
+    outline: none;
+    border: none;
+}
+
+#ChatInput::placeholder {
+    color: #8a7c9a;
+    font-style: italic;
+}
+
+/* Attach and Send buttons - TRULY IDENTICAL styling */
+#ChatAttachButton, #ChatSendButton {
+    background: #4a3e5a !important;
+    border: 2px solid #5a4e6a !important;
+    border-radius: 10px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: #ffffff !important;
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+}
+
+#ChatAttachButton:enabled, #ChatSendButton:enabled {
+    background: #4a3e5a !important;
+    border-color: #5a4e6a !important;
+    color: #ffffff !important;
+}
+
+#ChatAttachButton:enabled:hover, #ChatSendButton:enabled:hover {
+    background: #a259ff !important;
+    border-color: #a259ff !important;
+    color: #ffffff !important;
+}
+
+#ChatAttachButton:pressed, #ChatSendButton:pressed {
+    background: #6a5e7a !important;
+    border-color: #b366ff !important;
+    color: #b366ff !important;
+}
+
+/* Active states - BOTH buttons get same highlighting */
+#ChatAttachButton[active="true"] {
+    background: #a259ff !important;
+    border-color: #a259ff !important;
+    color: #ffffff !important;
+}
+
+/* Action buttons (Checkpoint, Undo, Export) - matching chat button style */
+#ActionButton {
+    background: transparent !important;
+    border: 2px solid #5a4e6a !important;
+    border-radius: 10px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: #ffffff !important;
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    max-width: 36px !important;
+    max-height: 36px !important;
+}
+
+#ActionButton:enabled {
+    background: transparent !important;
+    border-color: #5a4e6a !important;
+    color: #ffffff !important;
+}
+
+#ActionButton:enabled:hover {
+    background: #a259ff !important;
+    border-color: #a259ff !important;
+    color: #ffffff !important;
+}
+
+#ActionButton:pressed {
+    background: #6a5e7a !important;
+    border-color: #b366ff !important;
+    color: #b366ff !important;
+}
+
+#ActionButton:disabled {
+    background: #2d1e3a !important;
+    border-color: #3a2e4a !important;
+    color: #8a7c9a !important;
+}
+
+/* Disabled state - BOTH buttons get same disabled styling 
+#ChatAttachButton:disabled, #ChatSendButton:disabled {
+    background: #2d1e3a !important;
+    border-color: #3a2e4a !important;
+    color: #8a7c9a !important;
+}*/
+
+#ChatButtonFooter {
+    background: transparent;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Attachment chips styling */
+#AttachmentBar {
+    background: transparent;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+#AttachmentChip {
+    background: #2d1e3a;
+    border: 1px solid #3a2e4a;
+    border-radius: 8px;
+    padding: 0;
+    margin: 0;
+}
+
+#AttachmentChip:hover {
+    border-color: #a259ff;
+    background: #3a2e4a;
+}
+
+#AttachmentIcon {
+    color: #a259ff;
+    font-size: 14px;
+    background: transparent;
+    border: none;
+}
+
+#AttachmentName {
+    color: #e6eaf3;
+    font-size: 12px;
+    font-weight: 500;
+    background: transparent;
+    border: none;
+    max-width: 100px;
+    padding: 0;
+    margin: 0;
+}
+
+#AttachmentRemoveButton {
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: #8a7c9a;
     font-size: 16px;
-    margin: 12px 0 0 0;
-    min-height: 48px;
+    font-weight: bold;
+    padding: 0;
+    margin: 0;
+}
+
+#AttachmentRemoveButton:hover {
+    background: #3a2e4a;
+    color: #ff6b6b;
 }
 QSlider::groove:horizontal {
     border: none;
@@ -299,4 +547,38 @@ QSlider::handle:horizontal {
 #DialogCloseButton:hover {
     background: #a259ff;
     color: #fff;
+}
+
+/* Project header buttons - matching action button style */
+#ProjectEditButton, #ProjectDeleteButton {
+    background: transparent !important;
+    border: 2px solid #5a4e6a !important;
+    border-radius: 10px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: #ffffff !important;
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+}
+
+#ProjectEditButton:enabled, #ProjectDeleteButton:enabled {
+    background: transparent !important;
+    border-color: #5a4e6a !important;
+    color: #ffffff !important;
+}
+
+#ProjectEditButton:enabled:hover, #ProjectDeleteButton:enabled:hover {
+    background: #a259ff !important;
+    border-color: #a259ff !important;
+    color: #ffffff !important;
+}
+
+#ProjectEditButton:pressed, #ProjectDeleteButton:pressed {
+    background: #6a5e7a !important;
+    border-color: #b366ff !important;
+    color: #b366ff !important;
 } 
