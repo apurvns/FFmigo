@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy, QSplitter, QListWidget, QMenu, QListWidgetItem, QHBoxLayout, QScrollArea, QListWidgetItem, QStyledItemDelegate, QFrame, QProgressDialog, QDialog
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy, QSplitter, QListWidget, QMenu, QListWidgetItem, QHBoxLayout, QScrollArea, QListWidgetItem, QStyledItemDelegate, QFrame
 from PyQt6.QtCore import Qt, pyqtSignal, QObject, QUrl, QTimer, QEvent, QSize, QPoint
 from PyQt6.QtGui import QPixmap, QIcon, QDragEnterEvent, QDropEvent, QFont, QAction, QPainter, QColor
 from PyQt6.QtWidgets import QStyle
@@ -677,18 +677,19 @@ class MainWindow(QMainWindow):
             self.delete_project_btn.hide()
 
     def on_files_dropped(self, file_paths):
+        """Handle multiple video files being dropped or selected"""
         if not file_paths:
             return
-            
+        
         if len(file_paths) == 1:
-            # Single file - use existing logic
+            # Single file - use the old behavior
             self._handle_single_video(file_paths[0])
         else:
             # Multiple files - merge them
             self._handle_multiple_videos(file_paths)
     
     def _handle_single_video(self, file_path):
-        """Handle single video file (existing logic)"""
+        """Handle a single video file (original behavior)"""
         # Create project dir and copy video
         self.project_dir = project_manager.create_project_dir()
         self.input_path = project_manager.copy_video_to_project(file_path, self.project_dir)
@@ -717,178 +718,55 @@ class MainWindow(QMainWindow):
     
     def _handle_multiple_videos(self, file_paths):
         """Handle multiple video files by merging them"""
-        # Create project dir
+        # Create project directory
         self.project_dir = project_manager.create_project_dir()
         
-
+        # Initialize video analysis cache
+        from backend import video_analyzer
+        video_analyzer.init_cache(self.project_dir)
         
-        # Show progress dialog
-        progress_dialog = QProgressDialog("Merging videos...", "Cancel", 0, 0, self)
-        progress_dialog.setWindowTitle("Video Merge Progress")
-        progress_dialog.setModal(True)
-        progress_dialog.setAutoClose(False)
-        progress_dialog.setAutoReset(False)
+        # Create output path for merged video
+        output_path = os.path.join(self.project_dir, "input.mp4")
         
-        # Add timeout mechanism
-        def timeout_handler():
-            if hasattr(self, 'merge_thread') and self.merge_thread and self.merge_thread.is_alive():
-                print("[DEBUG] Merge operation timed out, forcing cleanup")
-                progress_dialog.close()
-                self.merge_progress_dialog = None
-                self.merge_thread = None
-                QMessageBox.warning(self, "Merge Timeout", "Video merge operation timed out. Please try with smaller files or check if FFmpeg is working properly.")
-        
-        # Set timeout to 10 minutes
-        timeout_timer = QTimer()
-        timeout_timer.singleShot(600000, timeout_handler)  # 10 minutes
-        
-        # Handle cancel button
-        def on_cancel():
-            print("[DEBUG] User cancelled merge operation")
-            if hasattr(self, 'merge_thread') and self.merge_thread and self.merge_thread.is_alive():
-                # Note: We can't easily kill the FFmpeg process from here
-                # The thread will continue but we'll ignore the result
-                self.merge_progress_dialog = None
-                self.merge_thread = None
-                progress_dialog.close()
-                QMessageBox.information(self, "Merge Cancelled", "Merge operation was cancelled. The process may continue in the background.")
-            else:
-                # If thread is already done, check if merge was successful
-                if os.path.exists(output_file):
-                    print("[DEBUG] Merge completed successfully despite cancellation")
-                    self._on_merge_complete({'success': True, 'stdout': '', 'stderr': '', 'returncode': 0}, output_file, output_ext)
-        
-        progress_dialog.canceled.connect(on_cancel)
-        progress_dialog.show()
-        
-        # Update progress message
-        file_names = [os.path.basename(f) for f in file_paths]
-        progress_dialog.setLabelText(f"Preparing to merge {len(file_paths)} videos:\n" + "\n".join(f"• {name}" for name in file_names))
-        
-        # Copy videos to project directory
-        copied_paths = project_manager.copy_multiple_videos_to_project(file_paths, self.project_dir)
-        
-        # Determine output format (use extension of first file)
-        output_ext = os.path.splitext(file_paths[0])[1]
-        output_file = os.path.join(self.project_dir, f'input{output_ext}')
-        
-        # Merge videos in background thread
-        def merge_videos():
-            try:
-                from backend import ffmpeg_runner
-                
-                def progress_callback(message):
-                    # Update progress dialog from main thread
-                    QTimer.singleShot(0, lambda: progress_dialog.setLabelText(f"Merging videos...\n{message}"))
-                
-                result = ffmpeg_runner.merge_videos_lossless(
-                    copied_paths, 
-                    output_file, 
-                    self.project_dir, 
-                    progress_callback
-                )
-                
-                # Clean up concat files immediately after merge
-                try:
-                    for i in range(len(file_paths)):
-                        concat_file = os.path.join(self.project_dir, f'concat_{i}{output_ext}')
-                        if os.path.exists(concat_file):
-                            os.remove(concat_file)
-                            print(f"[DEBUG] Removed concat file: {concat_file}")
-                except Exception as e:
-                    print(f"[DEBUG] Error cleaning up concat files: {e}")
-                
-                # Handle result in main thread
-                print(f"[DEBUG] Merge completed, result: {result}")
-                QTimer.singleShot(0, lambda: self._on_merge_complete(result, output_file, output_ext))
-                
-            except Exception as e:
-                QTimer.singleShot(0, lambda: self._on_merge_error(str(e)))
-        
-        # Start merge thread
-        merge_thread = threading.Thread(target=merge_videos)
-        merge_thread.daemon = True
-        merge_thread.start()
-        
-        # Store references for cleanup
-        self.merge_progress_dialog = progress_dialog
-        self.merge_thread = merge_thread
-        
-        # Close progress dialog when done
-        def check_merge_complete():
-            if not merge_thread.is_alive():
-                print("[DEBUG] Merge thread completed")
-                progress_dialog.close()
-                # Clear references
-                self.merge_progress_dialog = None
-                self.merge_thread = None
-            else:
-                print("[DEBUG] Merge thread still running...")
-                QTimer.singleShot(500, check_merge_complete)  # Check every 500ms instead of 100ms
-        
-        QTimer.singleShot(500, check_merge_complete)
+        # Show merge progress dialog
+        from ui.merge_progress_dialog import MergeProgressDialog
+        merge_dialog = MergeProgressDialog(file_paths, output_path, self)
+        merge_dialog.merge_completed.connect(self._on_merge_completed)
+        merge_dialog.merge_failed.connect(self._on_merge_failed)
+        merge_dialog.exec()
     
-    def _on_merge_complete(self, result, output_file, output_ext):
-        """Handle completion of video merge"""
-        print(f"[DEBUG] _on_merge_complete called with result: {result}")
-        print(f"[DEBUG] Expected output file: {output_file}")
-        print(f"[DEBUG] Output file exists: {os.path.exists(output_file)}")
+    def _on_merge_completed(self, output_path):
+        """Handle successful video merge"""
+        self.input_path = output_path
+        self.input_ext = os.path.splitext(self.input_path)[1][1:]  # e.g. 'mp4'
+        self.processed_path_file = self.input_path  # Set for export functionality
         
-        # Check if output file actually exists
-        if not os.path.exists(output_file):
-            print(f"[DEBUG] Output file does not exist, checking for partial files...")
-            # Check for any files that might have been created
-            import glob
-            project_files = glob.glob(os.path.join(self.project_dir, "*"))
-            print(f"[DEBUG] Files in project directory: {project_files}")
+        # Analyze the merged video
+        from backend import video_analyzer
+        self.input_video_analysis = video_analyzer.analyze_video(self.input_path)
+        if self.input_video_analysis:
+            summary = video_analyzer.get_video_summary(self.input_video_analysis)
+            print(f"[INFO] Merged video analysis: {summary}")
         
-        if result['success']:
-            # Set up project state
-            self.input_path = output_file
-            self.input_ext = output_ext[1:]  # Remove the dot
-            self.processed_path_file = output_file
-            
-            # Initialize video analysis cache
-            from backend import video_analyzer
-            video_analyzer.init_cache(self.project_dir)
-            
-            # Analyze the merged video
-            self.input_video_analysis = video_analyzer.analyze_video(self.input_path)
-            if self.input_video_analysis:
-                summary = video_analyzer.get_video_summary(self.input_video_analysis)
-                print(f"[INFO] Merged video analysis: {summary}")
-            
-            # Set UI state for project loaded
-            self.set_ui_state_for_project_loaded()
-            
-            # Load video and update UI
-            self.load_video(self.input_path)
-            self.chat_log.clear()
-            self.append_chat_log("System", "Successfully merged videos. Ready for commands.")
-            self.refresh_project_list(select=self.project_dir)
-            self.update_window_title()
-        else:
-            # Show error message
-            QMessageBox.critical(self, "Merge Error", f"Failed to merge videos:\n{result['stderr']}")
-            # Clean up project directory
-            import shutil
-            try:
-                shutil.rmtree(self.project_dir)
-            except:
-                pass
-            self.project_dir = None
+        # Set UI state for project loaded
+        self.set_ui_state_for_project_loaded()
+        
+        # Load video and update UI
+        self.load_video(self.input_path)
+        self.chat_log.clear()
+        self.append_chat_log("System", "Videos merged successfully. Ready for commands.")
+        self.refresh_project_list(select=self.project_dir)
+        self.update_window_title()
     
-    def _on_merge_error(self, error_message):
-        """Handle error during video merge"""
-        QMessageBox.critical(self, "Merge Error", f"Error during video merge:\n{error_message}")
-        # Clean up project directory
-        if hasattr(self, 'project_dir') and self.project_dir:
-            import shutil
-            try:
-                shutil.rmtree(self.project_dir)
-            except:
-                pass
-            self.project_dir = None
+    def _on_merge_failed(self, error_message):
+        """Handle failed video merge"""
+        QMessageBox.critical(self, "Merge Failed", f"Failed to merge videos:\n{error_message}")
+        # Reset to no project state
+        self.project_dir = None
+        self.input_path = None
+        self.input_ext = None
+        self.processed_path_file = None
+        self.input_video_analysis = None
 
     def append_chat_log(self, sender, message):
         from datetime import datetime
