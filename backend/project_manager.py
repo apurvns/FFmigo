@@ -21,6 +21,20 @@ def copy_video_to_project(src_path, project_dir):
     shutil.copy2(src_path, dst_path)
     return dst_path
 
+def copy_multiple_videos_to_project(src_paths, project_dir):
+    """
+    Copy multiple video files to project directory with concat_ prefix to avoid conflicts.
+    Returns list of copied file paths in the same order as input.
+    """
+    copied_paths = []
+    for i, src_path in enumerate(src_paths):
+        ext = Path(src_path).suffix
+        # Use concat_ prefix to avoid conflicts with final output
+        dst_path = os.path.join(project_dir, f'concat_{i}{ext}')
+        shutil.copy2(src_path, dst_path)
+        copied_paths.append(dst_path)
+    return copied_paths
+
 def _sanitize_filename(name):
     base, ext = os.path.splitext(name)
     # Replace any non-safe characters with underscore
