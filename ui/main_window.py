@@ -275,7 +275,7 @@ class ProjectSidebar(QWidget):
         elif action == delete_action:
             proj_dir = item.data(Qt.ItemDataRole.UserRole)
             self.delete_project_requested.emit(proj_dir)
-
+#Youtube Link
 class YouTubeDownloader(QThread):
     progress_signal = pyqtSignal(int)      # Progress in %
     finished_signal = pyqtSignal(str)      # File path when done
