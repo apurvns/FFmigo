@@ -11,7 +11,7 @@ def validate_ffmpeg_command(cmd):
     # Must contain input*. and output.
     if not re.search(r'input(_[0-9]+)?\.[a-zA-Z0-9]+', cmd) or 'output.' not in cmd:
         return False, 'Command must reference input*.ext and output.[ext].'
-    return True, ''
+    
     # Disallow dangerous shell metacharacters (allow colon for FFmpeg filter args)
     if re.search(r'[;&|`$]', cmd):
         return False, 'Command contains forbidden shell characters.'
@@ -66,6 +66,7 @@ def run_ffmpeg_command(cmd, workdir):
     try:
         # Find FFmpeg executable
         ffmpeg_path = find_ffmpeg()
+        
         if not ffmpeg_path:
             return {
                 'success': False,
@@ -79,12 +80,22 @@ def run_ffmpeg_command(cmd, workdir):
             cmd = cmd.replace('ffmpeg', ffmpeg_path, 1)
         
         args = shlex.split(cmd)
-        result = subprocess.run(args, cwd=workdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        # Add timeout to prevent hanging (30 minutes for video processing)
+        result = subprocess.run(args, cwd=workdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=1800)
+        
         return {
             'success': result.returncode == 0,
             'stdout': result.stdout,
             'stderr': result.stderr,
             'returncode': result.returncode
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            'success': False,
+            'stdout': '',
+            'stderr': 'FFmpeg command timed out after 30 minutes. The operation may have failed or taken too long.',
+            'returncode': -1
         }
     except Exception as e:
         return {
