@@ -581,4 +581,50 @@ QSlider::handle:horizontal {
     background: #6a5e7a !important;
     border-color: #b366ff !important;
     color: #b366ff !important;
+}
+
+/* Progress Dialog Styling */
+QProgressDialog {
+    background: #18141d;
+    color: #e6eaf3;
+    border: 2px solid #3a2e4a;
+    border-radius: 16px;
+    padding: 20px;
+}
+
+QProgressDialog QLabel {
+    color: #e6eaf3;
+    font-size: 14px;
+    font-weight: 500;
+    background: transparent;
+    border: none;
+}
+
+QProgressDialog QProgressBar {
+    background: #2d1e3a;
+    border: 1px solid #3a2e4a;
+    border-radius: 8px;
+    text-align: center;
+    color: #e6eaf3;
+    font-weight: 500;
+}
+
+QProgressDialog QProgressBar::chunk {
+    background: #a259ff;
+    border-radius: 7px;
+}
+
+QProgressDialog QPushButton {
+    background: #2d1e3a;
+    color: #fff;
+    border: 1px solid #3a2e4a;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+QProgressDialog QPushButton:hover {
+    background: #a259ff;
+    border-color: #a259ff;
 } 

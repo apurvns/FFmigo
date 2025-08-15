@@ -50,7 +50,7 @@ from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 
 class DragDropWidget(QWidget):
-    file_dropped = pyqtSignal(str)
+    files_dropped = pyqtSignal(list)  # Changed to emit list of files
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -65,7 +65,7 @@ class DragDropWidget(QWidget):
         # If not present, add your own SVG icon to resources/icons/upload.svg
         self.icon.setObjectName("DragDropIcon")
         self.icon.setPixmap(QPixmap(os.path.join(os.path.dirname(__file__), '../resources/icons/film.png')).scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio))
-        self.text = QLabel("<b>Drag and Drop Your Video File Here</b><br>or click to select a video")
+        self.text = QLabel("<b>Drag and Drop Your Video Files Here</b><br>or click to select videos (multiple selection supported)")
         self.text.setObjectName("DragDropText")
         self.text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.icon)
@@ -79,18 +79,22 @@ class DragDropWidget(QWidget):
     def dropEvent(self, event: QDropEvent):
         urls = event.mimeData().urls()
         if urls:
-            file_path = urls[0].toLocalFile()
-            self.file_dropped.emit(file_path)
+            file_paths = [url.toLocalFile() for url in urls]
+            # Filter for video files only
+            video_extensions = {'.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv'}
+            video_files = [path for path in file_paths if os.path.splitext(path)[1].lower() in video_extensions]
+            if video_files:
+                self.files_dropped.emit(video_files)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             file_dialog = QFileDialog(self)
-            file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+            file_dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)  # Changed to multiple selection
             file_dialog.setNameFilter("Video Files (*.mp4 *.mov *.avi *.mkv *.webm *.flv *.wmv)")
             if file_dialog.exec():
                 selected = file_dialog.selectedFiles()
                 if selected:
-                    self.file_dropped.emit(selected[0])
+                    self.files_dropped.emit(selected)
 
 
 
@@ -377,7 +381,7 @@ class MainWindow(QMainWindow):
         self.vbox.addWidget(self.project_header)
         # Drag-and-drop area
         self.dragdrop = DragDropWidget()
-        self.dragdrop.file_dropped.connect(self.on_file_dropped)
+        self.dragdrop.files_dropped.connect(self.on_files_dropped)
         self.vbox.addWidget(self.dragdrop, stretch=7)
         # Main content area with adjustable splitter
         self.main_content_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -672,7 +676,20 @@ class MainWindow(QMainWindow):
             self.edit_project_btn.hide()
             self.delete_project_btn.hide()
 
-    def on_file_dropped(self, file_path):
+    def on_files_dropped(self, file_paths):
+        """Handle multiple video files being dropped or selected"""
+        if not file_paths:
+            return
+        
+        if len(file_paths) == 1:
+            # Single file - use the old behavior
+            self._handle_single_video(file_paths[0])
+        else:
+            # Multiple files - merge them
+            self._handle_multiple_videos(file_paths)
+    
+    def _handle_single_video(self, file_path):
+        """Handle a single video file (original behavior)"""
         # Create project dir and copy video
         self.project_dir = project_manager.create_project_dir()
         self.input_path = project_manager.copy_video_to_project(file_path, self.project_dir)
@@ -698,6 +715,58 @@ class MainWindow(QMainWindow):
         self.append_chat_log("System", "Video loaded. Ready for commands.")
         self.refresh_project_list(select=self.project_dir)
         self.update_window_title()
+    
+    def _handle_multiple_videos(self, file_paths):
+        """Handle multiple video files by merging them"""
+        # Create project directory
+        self.project_dir = project_manager.create_project_dir()
+        
+        # Initialize video analysis cache
+        from backend import video_analyzer
+        video_analyzer.init_cache(self.project_dir)
+        
+        # Create output path for merged video
+        output_path = os.path.join(self.project_dir, "input.mp4")
+        
+        # Show merge progress dialog
+        from ui.merge_progress_dialog import MergeProgressDialog
+        merge_dialog = MergeProgressDialog(file_paths, output_path, self)
+        merge_dialog.merge_completed.connect(self._on_merge_completed)
+        merge_dialog.merge_failed.connect(self._on_merge_failed)
+        merge_dialog.exec()
+    
+    def _on_merge_completed(self, output_path):
+        """Handle successful video merge"""
+        self.input_path = output_path
+        self.input_ext = os.path.splitext(self.input_path)[1][1:]  # e.g. 'mp4'
+        self.processed_path_file = self.input_path  # Set for export functionality
+        
+        # Analyze the merged video
+        from backend import video_analyzer
+        self.input_video_analysis = video_analyzer.analyze_video(self.input_path)
+        if self.input_video_analysis:
+            summary = video_analyzer.get_video_summary(self.input_video_analysis)
+            print(f"[INFO] Merged video analysis: {summary}")
+        
+        # Set UI state for project loaded
+        self.set_ui_state_for_project_loaded()
+        
+        # Load video and update UI
+        self.load_video(self.input_path)
+        self.chat_log.clear()
+        self.append_chat_log("System", "Videos merged successfully. Ready for commands.")
+        self.refresh_project_list(select=self.project_dir)
+        self.update_window_title()
+    
+    def _on_merge_failed(self, error_message):
+        """Handle failed video merge"""
+        QMessageBox.critical(self, "Merge Failed", f"Failed to merge videos:\n{error_message}")
+        # Reset to no project state
+        self.project_dir = None
+        self.input_path = None
+        self.input_ext = None
+        self.processed_path_file = None
+        self.input_video_analysis = None
 
     def append_chat_log(self, sender, message):
         from datetime import datetime
