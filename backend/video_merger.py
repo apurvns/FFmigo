@@ -15,23 +15,16 @@ class VideoMerger:
         Check if multiple videos are compatible for direct concatenation.
         Returns (is_compatible, compatibility_info)
         """
-        print(f"[DEBUG] check_video_compatibility called with {len(video_paths)} videos")
-        
         if len(video_paths) < 2:
             return True, {"reason": "Single video or no videos"}
         
         # Analyze all videos
         analyses = []
         for i, path in enumerate(video_paths):
-            print(f"[DEBUG] Analyzing video {i+1}: {path}")
             analysis = video_analyzer.analyze_video(path)
             if not analysis:
-                print(f"[DEBUG] Failed to analyze video {i+1}")
                 return False, {"reason": f"Could not analyze {os.path.basename(path)}"}
             analyses.append(analysis)
-            print(f"[DEBUG] Video {i+1} analysis complete")
-        
-        print(f"[DEBUG] All videos analyzed, checking compatibility...")
         
         # Check if all videos have the same specs
         first_video = analyses[0]['video_streams'][0] if analyses[0]['video_streams'] else None
@@ -85,7 +78,6 @@ class VideoMerger:
                     compatibility_info["incompatibilities"].append(f"Video {i+1} has different audio codec: {audio_stream['codec_name']}")
         
         is_compatible = len(compatibility_info["incompatibilities"]) == 0
-        print(f"[DEBUG] Compatibility check complete: {is_compatible}")
         return is_compatible, compatibility_info
     
     def merge_videos_compatible(self, video_paths: List[str], output_path: str, progress_callback=None) -> Dict:
@@ -218,9 +210,6 @@ class VideoMerger:
         """
         Main method to merge videos, automatically choosing the best method
         """
-        print(f"[DEBUG] merge_videos called with {len(video_paths)} videos")
-        print(f"[DEBUG] Output path: {output_path}")
-        
         if len(video_paths) == 0:
             return {"success": False, "error": "No videos provided"}
         
@@ -228,32 +217,22 @@ class VideoMerger:
             # Just copy the single video
             import shutil
             try:
-                print(f"[DEBUG] Single video, copying {video_paths[0]} to {output_path}")
                 shutil.copy2(video_paths[0], output_path)
                 return {"success": True, "method": "copy"}
             except Exception as e:
-                print(f"[DEBUG] Copy failed: {e}")
                 return {"success": False, "error": str(e)}
         
         # Check compatibility
         if progress_callback:
-            print(f"[DEBUG] Calling progress_callback(5)")
             progress_callback(5, "Checking video compatibility...")
         
-        print(f"[DEBUG] Checking compatibility...")
         is_compatible, compatibility_info = self.check_video_compatibility(video_paths)
-        print(f"[DEBUG] Compatibility result: {is_compatible}")
-        print(f"[DEBUG] Compatibility info: {compatibility_info}")
         
         if is_compatible:
             if progress_callback:
-                print(f"[DEBUG] Calling progress_callback(8) - compatible")
                 progress_callback(8, "Videos are compatible, using lossless merge...")
-            print(f"[DEBUG] Using compatible merge method")
             return self.merge_videos_compatible(video_paths, output_path, progress_callback)
         else:
             if progress_callback:
-                print(f"[DEBUG] Calling progress_callback(8) - incompatible")
                 progress_callback(8, f"Videos are incompatible ({len(compatibility_info['incompatibilities'])} differences), normalizing...")
-            print(f"[DEBUG] Using incompatible merge method")
             return self.merge_videos_incompatible(video_paths, output_path, progress_callback) 

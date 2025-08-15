@@ -15,6 +15,7 @@ class MergeProgressDialog(QDialog):
         self.output_path = output_path
         self.merger = None
         self.merge_thread = None
+        self.merge_completed_flag = False
         
         self.setWindowTitle("Merging Videos")
         self.setFixedSize(500, 400)
@@ -48,12 +49,13 @@ class MergeProgressDialog(QDialog):
         self.video_list.setReadOnly(True)
         self.video_list.setStyleSheet("""
             QTextEdit {
-                background-color: #f5f5f5;
-                border: 1px solid #ddd;
+                background-color: #2d1e3a;
+                border: 1px solid #444;
                 border-radius: 4px;
                 padding: 8px;
                 font-family: monospace;
                 font-size: 11px;
+                color: #e6eaf3;
             }
         """)
         
@@ -106,9 +108,9 @@ class MergeProgressDialog(QDialog):
         
         layout.addLayout(progress_layout)
         
-        # Cancel button (initially disabled)
+        # Cancel button (initially enabled)
         self.cancel_btn = QPushButton("Cancel")
-        self.cancel_btn.setEnabled(False)  # Disable during merge
+        self.cancel_btn.setEnabled(True)  # Enable during merge
         self.cancel_btn.clicked.connect(self.cancel_merge)
         self.cancel_btn.setStyleSheet("""
             QPushButton {
@@ -135,6 +137,8 @@ class MergeProgressDialog(QDialog):
         
         # Connect signals
         self.progress_updated.connect(self._update_progress)
+        self.merge_completed.connect(self._on_merge_completed)
+        self.merge_failed.connect(self._on_merge_failed)
     
     def start_merge(self):
         """Start the merge process in a background thread"""
@@ -147,15 +151,11 @@ class MergeProgressDialog(QDialog):
     def _run_merge(self):
         """Run the merge process in background thread"""
         try:
-            print(f"[DEBUG] _run_merge started in thread")
-            
             # Update progress callback to emit signals to main thread
             def progress_callback(percent, message):
-                print(f"[DEBUG] Progress callback: {percent}% - {message}")
                 # Emit signal to main thread
                 self.progress_updated.emit(percent, message)
             
-            print(f"[DEBUG] About to call merge_videos")
             # Run the merge
             result = self.merger.merge_videos(
                 self.video_paths, 
@@ -163,28 +163,20 @@ class MergeProgressDialog(QDialog):
                 progress_callback
             )
             
-            print(f"[DEBUG] merge_videos returned: {result}")
-            
             # Emit result
             if result.get('success'):
-                print(f"[DEBUG] Merge successful, emitting completed signal")
                 self.merge_completed.emit(self.output_path)
             else:
                 error_msg = result.get('error', 'Unknown error occurred')
                 if not error_msg and result.get('stderr'):
                     error_msg = result.get('stderr')
-                print(f"[DEBUG] Merge failed: {error_msg}")
                 self.merge_failed.emit(error_msg)
                 
         except Exception as e:
-            print(f"[DEBUG] Exception in _run_merge: {e}")
-            import traceback
-            traceback.print_exc()
             self.merge_failed.emit(str(e))
     
     def _update_progress(self, percent, message):
         """Update progress bar and status (called from main thread via signal)"""
-        print(f"[DEBUG] _update_progress called: {percent}% - {message}")
         self.progress_bar.setValue(percent)
         self.status_label.setText(message)
         
@@ -198,15 +190,57 @@ class MergeProgressDialog(QDialog):
         else:
             self.details_label.setText("Merge completed successfully!")
     
+    def _on_merge_completed(self, output_path):
+        """Handle successful merge completion"""
+        self.merge_completed_flag = True
+        self.cancel_btn.setText("Close")
+        self.cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+        """)
+        # Auto-close after a short delay
+        QTimer.singleShot(1500, self.accept)
+    
+    def _on_merge_failed(self, error_message):
+        """Handle failed merge"""
+        self.merge_completed_flag = True
+        self.cancel_btn.setText("Close")
+        self.cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+        """)
+        # Don't auto-close on failure, let user read the error
+    
     def cancel_merge(self):
-        """Cancel the merge process"""
-        # For now, just close the dialog
-        # In a more advanced implementation, we could signal the FFmpeg process to stop
-        self.reject()
+        """Cancel the merge process or close dialog"""
+        if self.merge_completed_flag:
+            # Merge is done, just close
+            self.accept()
+        else:
+            # Merge is still running, cancel it
+            self.reject()
     
     def closeEvent(self, event):
         """Prevent closing during merge"""
-        if self.merge_thread and self.merge_thread.is_alive():
+        if not self.merge_completed_flag and self.merge_thread and self.merge_thread.is_alive():
             event.ignore()
         else:
             event.accept() 
