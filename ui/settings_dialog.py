@@ -128,14 +128,17 @@ class SettingsDialog(QDialog):
             self.llm_endpoint.setText(PROVIDER_DEFAULTS['Ollama']['endpoint'])
             self.llm_model.setText(PROVIDER_DEFAULTS['Ollama']['model'])
             self.api_key.setText('')
+        
+        # Connect provider change signal and initialize UI state
         self.provider.currentTextChanged.connect(self.on_provider_changed)
-        self.on_provider_changed(self.provider.currentText())
+        self.on_provider_changed(self.provider.currentText(), skip_defaults=True)
 
-    def on_provider_changed(self, provider):
-        # Set sensible defaults
-        self.llm_endpoint.setText(PROVIDER_DEFAULTS[provider]['endpoint'])
-        self.llm_model.setText(PROVIDER_DEFAULTS[provider]['model'])
-        self.api_key.setText(PROVIDER_DEFAULTS[provider]['api_key'])
+    def on_provider_changed(self, provider, skip_defaults=False):
+        # Set sensible defaults only if not skipping (i.e., not during initial load)
+        if not skip_defaults:
+            self.llm_endpoint.setText(PROVIDER_DEFAULTS[provider]['endpoint'])
+            self.llm_model.setText(PROVIDER_DEFAULTS[provider]['model'])
+            self.api_key.setText(PROVIDER_DEFAULTS[provider]['api_key'])
         if provider == "Ollama":
             self.label_api_key.hide()
             self.api_key.hide()
