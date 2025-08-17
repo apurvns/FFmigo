@@ -2,7 +2,13 @@ from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLab
 from PyQt6.QtCore import Qt, pyqtSignal, QObject, QUrl, QTimer, QEvent, QSize, QPoint
 from PyQt6.QtGui import QPixmap, QIcon, QDragEnterEvent, QDropEvent, QFont, QAction, QPainter, QColor
 from PyQt6.QtWidgets import QStyle
+from PyQt6.QtGui import QShortcut, QKeySequence
 import os
+import time
+from PyQt6.QtWidgets import QPushButton, QLineEdit, QProgressBar
+from PyQt6.QtCore import pyqtSignal,QThread
+import yt_dlp
+import threading
 from backend import project_manager, thumbnailer
 from ui.checkpoint_dialog import CheckpointDialog
 
@@ -274,7 +280,42 @@ class ProjectSidebar(QWidget):
         elif action == delete_action:
             proj_dir = item.data(Qt.ItemDataRole.UserRole)
             self.delete_project_requested.emit(proj_dir)
+class YouTubeDownloader(QThread):
+    progress_signal = pyqtSignal(int)      # Progress in %
+    finished_signal = pyqtSignal(str)      # File path when done
+    error_signal = pyqtSignal(str)         # Error messages
 
+    def __init__(self, url, project_dir):
+        super().__init__()
+        self.url = url
+        self.project_dir = project_dir
+        
+    def run(self):
+        try:
+            
+            ydl_opts = {
+                'format': 'mp4',
+                'outtmpl': os.path.join(self.project_dir, '%(title)s.%(ext)s'),
+                'progress_hooks': [self.progress_hook],
+                'quiet': True
+            }
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([self.url])
+
+        except Exception as e:
+            self.error_signal.emit(str(e))
+
+    def progress_hook(self, d):
+        if d['status'] == 'downloading':
+            percent_str = d.get('_percent_str', '0.0%').replace('%', '').strip()
+            try:
+                percent_val = int(float(percent_str))
+                self.progress_signal.emit(percent_val)
+            except:
+                pass
+        elif d['status'] == 'finished':
+            self.finished_signal.emit(d['filename'])
 class MainWindow(QMainWindow):
     process_result_ready = pyqtSignal(dict)
 
@@ -407,6 +448,14 @@ class MainWindow(QMainWindow):
         self.media_controls_layout = QHBoxLayout(self.media_controls)
         self.media_controls_layout.setContentsMargins(8, 8, 8, 8)
         self.media_controls_layout.setSpacing(8)
+
+        # Bind Escape key to exit fullscreen
+        self.esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self.video_widget)
+        self.esc_shortcut.activated.connect(self.exitFullscreen)
+
+        # Shortcut for Spacebar to toggle play/pause in fullscreen
+        spacebar_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self.video_widget)
+        spacebar_shortcut.activated.connect(self.spacebar_toggle_play_pause)
         
         # Play/Pause icon button
         self.play_pause_btn = QPushButton()
@@ -488,6 +537,23 @@ class MainWindow(QMainWindow):
         self.timer = QTimer()
         self.timer.setInterval(500)
         self.timer.timeout.connect(self.update_time_label)
+        
+         # YouTube Download Section 
+        youtube_layout = QHBoxLayout()
+        self.youtube_input = QLineEdit()
+        self.youtube_input.setPlaceholderText("Paste YouTube link here...")
+        youtube_layout.addWidget(self.youtube_input)
+        self.youtube_download_btn = QPushButton("Download")
+        self.youtube_download_btn.clicked.connect(self.download_youtube_video)
+        youtube_layout.addWidget(self.youtube_download_btn)
+        self.youtube_progress = QProgressBar()
+        self.youtube_progress.setValue(0)
+        self.youtube_progress.hide()
+        youtube_layout.addWidget(self.youtube_progress)
+        youtube_widget = QWidget()
+        youtube_widget.setLayout(youtube_layout)
+        self.vbox.addWidget(youtube_widget)
+        
         # Chat input area - ChatGPT-style design
         self.chat_area = QWidget()
         self.chat_area.setObjectName("ChatInputArea")
@@ -767,6 +833,32 @@ class MainWindow(QMainWindow):
         self.input_ext = None
         self.processed_path_file = None
         self.input_video_analysis = None
+
+    def download_youtube_video(self):
+        url = self.youtube_input.text().strip()
+        if not url:
+            QMessageBox.warning(self, "Error", "Please enter a YouTube link.")
+            return
+        self.youtube_progress.setFormat("Processing... ")
+        self.youtube_progress.setValue(0)
+        self.youtube_progress.show()
+
+        project_name = f"YouTube_{int(time.time())}"  # Unique name
+        project_dir = os.path.join(os.getcwd(), "projects", project_name)
+        os.makedirs(project_dir, exist_ok=True)
+
+        self.youtube_thread = YouTubeDownloader(url, project_dir)
+        self.youtube_thread.progress_signal.connect(self.youtube_progress.setValue)
+        self.youtube_thread.finished_signal.connect(self.youtube_download_finished)
+        self.youtube_thread.error_signal.connect(self.youtube_download_error)
+        self.youtube_thread.start()
+    def youtube_download_finished(self, file_path):
+        self.youtube_progress.hide()
+        QMessageBox.information(self, "Download Complete", f"Video saved to project folder:\n{file_path}")
+        self.load_project(os.path.dirname(file_path))  # Loads new project automatically
+    def youtube_download_error(self, error_msg):
+        self.youtube_progress.hide()
+        QMessageBox.critical(self, "Download Failed", error_msg)
 
     def append_chat_log(self, sender, message):
         from datetime import datetime
@@ -1156,6 +1248,10 @@ class MainWindow(QMainWindow):
             self.media_player.pause()
         else:
             self.media_player.play()
+            
+    def spacebar_toggle_play_pause(self):
+        if self.video_widget.isFullScreen():
+            self.toggle_play_pause()
 
     def update_play_pause_icon(self, state):
         if state == QMediaPlayer.PlaybackState.PlayingState:
@@ -1191,6 +1287,12 @@ class MainWindow(QMainWindow):
             self.video_widget.setFullScreen(False)
         else:
             self.video_widget.setFullScreen(True)
+
+    def exitFullscreen(self):
+        if self.video_widget.isFullScreen():
+            self.video_widget.setFullScreen(False)
+        else:
+            super().keyPressEvent(event)
 
     def handle_media_error(self, error):
         if error:
@@ -1620,30 +1722,30 @@ class MainWindow(QMainWindow):
     def load_project(self, proj_dir):
         import os
         import subprocess
+        import re
         
         print(f"[DEBUG] load_project: loading project from {proj_dir}")
         
         # Use shell command to find the latest input file
         try:
-            # Find all input files and get the one with highest number
-            cmd = f"ls {proj_dir}/input* 2>/dev/null | grep -E 'input_[0-9]+\.' | sort -V | tail -1"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            latest_input_file = result.stdout.strip()
+            files = os.listdir(proj_dir)
+        
+            # Filter files that match 'input_<number>.ext'
+            input_files = [f for f in files if re.match(r'^input_\d+\.', f)]
+            input_files.sort(key=lambda f: int(re.search(r'input_(\d+)', f).group(1)) if re.search(r'input_(\d+)', f) else 0)
             
+            latest_input_file = input_files[-1] if input_files else None
+
             if not latest_input_file:
-                # No numbered files found, try to find input.mp4
-                cmd2 = f"ls {proj_dir}/input.mp4 2>/dev/null"
-                result2 = subprocess.run(cmd2, shell=True, capture_output=True, text=True)
-                latest_input_file = result2.stdout.strip()
-            
-            if not latest_input_file:
+                fallback_files = [f for f in files if re.match(r'^input\..+$', f)]
+                latest_input_file = fallback_files[0] if fallback_files else None
+
+            if not latest_input_file:    
                 QMessageBox.warning(self, "Error", "No input video found in project.")
                 return
-            
-            # Extract just the filename from the full path
-            latest_input_file = os.path.basename(latest_input_file)
+
             print(f"[DEBUG] load_project: found latest file: {latest_input_file}")
-            
+
         except Exception as e:
             print(f"[ERROR] load_project: error finding latest file: {e}")
             QMessageBox.warning(self, "Error", "No input video found in project.")
