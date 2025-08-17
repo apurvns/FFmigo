@@ -1,0 +1,674 @@
+{
+  "6619526f8dc5515e40aad8d157513f34": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/input.mp4",
+    "file_name": "input.mp4",
+    "format": {
+      "duration": 10.24,
+      "size": 7756645,
+      "bit_rate": 6059878,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "mpeg4",
+        "codec_long_name": "MPEG-4 part 2",
+        "codec_type": "video",
+        "width": 1920,
+        "height": 1080,
+        "pixel_format": "yuv420p",
+        "frame_rate": 25.0,
+        "duration": 10.24,
+        "bit_rate": 5935563,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 10.22,
+        "bit_rate": 117635
+      }
+    ],
+    "other_streams": [
+      {
+        "index": 2,
+        "codec_name": "",
+        "codec_long_name": "",
+        "codec_type": "data"
+      }
+    ]
+  },
+  "fe7fcfa5d354908b7694d08ccd19a6a7": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/assets/END.mp4",
+    "file_name": "END.mp4",
+    "format": {
+      "duration": 10.24,
+      "size": 7756645,
+      "bit_rate": 6059878,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "mpeg4",
+        "codec_long_name": "MPEG-4 part 2",
+        "codec_type": "video",
+        "width": 1920,
+        "height": 1080,
+        "pixel_format": "yuv420p",
+        "frame_rate": 25.0,
+        "duration": 10.24,
+        "bit_rate": 5935563,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 10.22,
+        "bit_rate": 117635
+      }
+    ],
+    "other_streams": [
+      {
+        "index": 2,
+        "codec_name": "",
+        "codec_long_name": "",
+        "codec_type": "data"
+      }
+    ]
+  },
+  "eb77d01cbc08fd33a3a942516ba42fc3": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/assets/END_1.mp4",
+    "file_name": "END_1.mp4",
+    "format": {
+      "duration": 10.24,
+      "size": 7756645,
+      "bit_rate": 6059878,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "mpeg4",
+        "codec_long_name": "MPEG-4 part 2",
+        "codec_type": "video",
+        "width": 1920,
+        "height": 1080,
+        "pixel_format": "yuv420p",
+        "frame_rate": 25.0,
+        "duration": 10.24,
+        "bit_rate": 5935563,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 10.22,
+        "bit_rate": 117635
+      }
+    ],
+    "other_streams": [
+      {
+        "index": 2,
+        "codec_name": "",
+        "codec_long_name": "",
+        "codec_type": "data"
+      }
+    ]
+  },
+  "9f55f8c936a6778095cf029073c0e619": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/assets/ssstwitter.com_1750336557332_1.mp4",
+    "file_name": "ssstwitter.com_1750336557332_1.mp4",
+    "format": {
+      "duration": 102.19102,
+      "size": 11553329,
+      "bit_rate": 904449,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pixel_format": "yuv420p",
+        "frame_rate": 29.97002997002997,
+        "duration": 102.135,
+        "bit_rate": 767942,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 102.19102,
+        "bit_rate": 128000
+      }
+    ],
+    "other_streams": []
+  },
+  "c1b2d19670a0ce334e561c2b050fc4c3": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/input_3.mp4",
+    "file_name": "input_3.mp4",
+    "format": {
+      "duration": 112.44,
+      "size": 17677545,
+      "bit_rate": 1257740,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pixel_format": "yuv420p",
+        "frame_rate": 25.0,
+        "duration": 112.44,
+        "bit_rate": 1121218,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 112.430998,
+        "bit_rate": 129862
+      }
+    ],
+    "other_streams": []
+  },
+  "697e80db1ffc6370ff4d6dfa33f941e4": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/input_1.mp4",
+    "file_name": "input_1.mp4",
+    "format": {
+      "duration": 112.44,
+      "size": 239549,
+      "bit_rate": 17043,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pixel_format": "yuv420p",
+        "frame_rate": 25.0,
+        "duration": 112.44,
+        "bit_rate": 8145,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 112.430998,
+        "bit_rate": 2090
+      }
+    ],
+    "other_streams": []
+  },
+  "4e3ba5875a2f72a1fbea40cc3364052b": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/input_3.mp4",
+    "file_name": "input_3.mp4",
+    "format": {
+      "duration": 112.44,
+      "size": 23263558,
+      "bit_rate": 1655180,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pixel_format": "yuv444p",
+        "frame_rate": 25.0,
+        "duration": 112.44,
+        "bit_rate": 1518635,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 112.430998,
+        "bit_rate": 129870
+      }
+    ],
+    "other_streams": []
+  },
+  "98b302f58a634182edf62d5f35991757": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/input.mp4",
+    "file_name": "input.mp4",
+    "format": {
+      "duration": 112.44,
+      "size": 24771981,
+      "bit_rate": 1762503,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pixel_format": "yuv444p",
+        "frame_rate": 25.0,
+        "duration": 112.44,
+        "bit_rate": 1626854,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 112.430998,
+        "bit_rate": 128961
+      }
+    ],
+    "other_streams": []
+  },
+  "06b128a3b6cecde8aa61e0e35fbe4678": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/assets/END_2.mp4",
+    "file_name": "END_2.mp4",
+    "format": {
+      "duration": 10.24,
+      "size": 7756645,
+      "bit_rate": 6059878,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "mpeg4",
+        "codec_long_name": "MPEG-4 part 2",
+        "codec_type": "video",
+        "width": 1920,
+        "height": 1080,
+        "pixel_format": "yuv420p",
+        "frame_rate": 25.0,
+        "duration": 10.24,
+        "bit_rate": 5935563,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 10.22,
+        "bit_rate": 117635
+      }
+    ],
+    "other_streams": [
+      {
+        "index": 2,
+        "codec_name": "",
+        "codec_long_name": "",
+        "codec_type": "data"
+      }
+    ]
+  },
+  "8d1e75b729dcb6360bb0d88481da2291": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/input_2.mp4",
+    "file_name": "input_2.mp4",
+    "format": {
+      "duration": 122.693991,
+      "size": 24177842,
+      "bit_rate": 1576464,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pixel_format": "yuv444p",
+        "frame_rate": 25.0,
+        "duration": 122.68,
+        "bit_rate": 1442434,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 122.693991,
+        "bit_rate": 127498
+      }
+    ],
+    "other_streams": []
+  },
+  "e55f065026189367a884849d12220a92": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/input.mp4",
+    "file_name": "input.mp4",
+    "format": {
+      "duration": 122.693991,
+      "size": 24177842,
+      "bit_rate": 1576464,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pixel_format": "yuv444p",
+        "frame_rate": 25.0,
+        "duration": 122.68,
+        "bit_rate": 1442434,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 122.693991,
+        "bit_rate": 127498
+      }
+    ],
+    "other_streams": []
+  },
+  "4576f5ed87710be3ad04da13238d97ed": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/input_1.mp4",
+    "file_name": "input_1.mp4",
+    "format": {
+      "duration": 122.693991,
+      "size": 21388167,
+      "bit_rate": 1394569,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pixel_format": "yuv444p",
+        "frame_rate": 25.0,
+        "duration": 122.68,
+        "bit_rate": 1260382,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 122.693991,
+        "bit_rate": 127634
+      }
+    ],
+    "other_streams": []
+  },
+  "ba1f3ecb78a8fe3091fbe58c34b8243f": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/input_2.mp4",
+    "file_name": "input_2.mp4",
+    "format": {
+      "duration": 122.693991,
+      "size": 20175866,
+      "bit_rate": 1315524,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pixel_format": "yuv420p",
+        "frame_rate": 25.0,
+        "duration": 122.68,
+        "bit_rate": 1181324,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 122.693991,
+        "bit_rate": 127634
+      }
+    ],
+    "other_streams": []
+  },
+  "5780e824f46ce14367a31186fa047edb": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/input_3.mp4",
+    "file_name": "input_3.mp4",
+    "format": {
+      "duration": 122.693991,
+      "size": 19707921,
+      "bit_rate": 1285012,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pixel_format": "yuv420p",
+        "frame_rate": 25.0,
+        "duration": 122.68,
+        "bit_rate": 1151088,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 122.693991,
+        "bit_rate": 127344
+      }
+    ],
+    "other_streams": []
+  },
+  "eed556b39e14882d8d99991c43c78112": {
+    "file_path": "/Users/aaa/.video-editor-app/projects/1754718666/input_4.mp4",
+    "file_name": "input_4.mp4",
+    "format": {
+      "duration": 122.68,
+      "size": 17341498,
+      "bit_rate": 1130844,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720,
+        "pixel_format": "yuv420p",
+        "frame_rate": 25.0,
+        "duration": 122.68,
+        "bit_rate": 1128502,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [],
+    "other_streams": []
+  },
+  "dacf3600fb7d11ec21f73d30a5755ccf": {
+    "file_path": "/Users/aaa/Desktop/myapp/ffmigo/projects/YouTube_1755407813/input.mp4",
+    "file_name": "input.mp4",
+    "format": {
+      "duration": 668.711474,
+      "size": 24819070,
+      "bit_rate": 296918,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV"
+    },
+    "video_streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_type": "video",
+        "width": 640,
+        "height": 360,
+        "pixel_format": "yuv420p",
+        "frame_rate": 30.0,
+        "duration": 668.7,
+        "bit_rate": 164961,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "16:9"
+      }
+    ],
+    "audio_streams": [
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_type": "audio",
+        "sample_rate": 44100,
+        "channels": 2,
+        "channel_layout": "stereo",
+        "duration": 668.711474,
+        "bit_rate": 128004
+      }
+    ],
+    "other_streams": []
+  }
+}

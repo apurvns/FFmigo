@@ -308,13 +308,45 @@ class YouTubeDownloader(QThread):
 
     def progress_hook(self, d):
         if d['status'] == 'downloading':
-            percent_str = d.get('_percent_str', '0.0%').replace('%', '').strip()
-            try:
-                percent_val = int(float(percent_str))
-                self.progress_signal.emit(percent_val)
-            except:
-                pass
+            # Try multiple ways to get progress percentage
+            percent_val = 0
+            
+            # Method 1: Try _percent_str
+            if '_percent_str' in d:
+                percent_str = d['_percent_str'].replace('%', '').strip()
+                try:
+                    percent_val = int(float(percent_str))
+                except:
+                    pass
+            
+            # Method 2: Try calculating from downloaded/total bytes
+            if percent_val == 0 and 'downloaded_bytes' in d and 'total_bytes' in d:
+                try:
+                    downloaded = d['downloaded_bytes']
+                    total = d['total_bytes']
+                    if total > 0:
+                        percent_val = int((downloaded / total) * 100)
+                except:
+                    pass
+            
+            # Method 3: Try calculating from downloaded/total bytes_estimate
+            if percent_val == 0 and 'downloaded_bytes' in d and 'total_bytes_estimate' in d:
+                try:
+                    downloaded = d['downloaded_bytes']
+                    total = d['total_bytes_estimate']
+                    if total > 0:
+                        percent_val = int((downloaded / total) * 100)
+                except:
+                    pass
+            
+            # Ensure percentage is within valid range
+            percent_val = max(0, min(100, percent_val))
+            
+            print(f"[DEBUG] YouTube download progress: {percent_val}%")
+            self.progress_signal.emit(percent_val)
+            
         elif d['status'] == 'finished':
+            print(f"[DEBUG] YouTube download finished: {d.get('filename', 'unknown')}")
             self.finished_signal.emit(d['filename'])
 class MainWindow(QMainWindow):
     process_result_ready = pyqtSignal(dict)
@@ -540,19 +572,25 @@ class MainWindow(QMainWindow):
         
          # YouTube Download Section 
         youtube_layout = QHBoxLayout()
+        youtube_layout.setSpacing(12)  # Increased spacing between elements
         self.youtube_input = QLineEdit()
         self.youtube_input.setPlaceholderText("Paste YouTube link here...")
-        youtube_layout.addWidget(self.youtube_input)
+        youtube_layout.addWidget(self.youtube_input, stretch=1)  # Give input field more space
         self.youtube_download_btn = QPushButton("Download")
         self.youtube_download_btn.clicked.connect(self.download_youtube_video)
+        self.youtube_download_btn.setFixedWidth(80)  # Fixed width for button
         youtube_layout.addWidget(self.youtube_download_btn)
         self.youtube_progress = QProgressBar()
         self.youtube_progress.setValue(0)
+        self.youtube_progress.setFormat("")  # No text to avoid overlap
+        self.youtube_progress.setMinimumWidth(300)  # Much larger minimum width
+        self.youtube_progress.setMaximumWidth(400)  # Larger maximum width
+        self.youtube_progress.setMinimumHeight(25)  # Make it taller for better visibility
         self.youtube_progress.hide()
         youtube_layout.addWidget(self.youtube_progress)
-        youtube_widget = QWidget()
-        youtube_widget.setLayout(youtube_layout)
-        self.vbox.addWidget(youtube_widget)
+        self.youtube_widget = QWidget()
+        self.youtube_widget.setLayout(youtube_layout)
+        self.vbox.addWidget(self.youtube_widget)
         
         # Chat input area - ChatGPT-style design
         self.chat_area = QWidget()
@@ -839,25 +877,77 @@ class MainWindow(QMainWindow):
         if not url:
             QMessageBox.warning(self, "Error", "Please enter a YouTube link.")
             return
-        self.youtube_progress.setFormat("Processing... ")
+        
+        # Reset progress bar
         self.youtube_progress.setValue(0)
         self.youtube_progress.show()
+        
+        # Disable download button during download
+        self.youtube_download_btn.setEnabled(False)
+        self.youtube_input.setEnabled(False)
 
-        project_name = f"YouTube_{int(time.time())}"  # Unique name
-        project_dir = os.path.join(os.getcwd(), "projects", project_name)
-        os.makedirs(project_dir, exist_ok=True)
+        # Use the proper project manager to create project directory
+        self.project_dir = project_manager.create_project_dir()
+        print(f"[INFO] Created project directory for YouTube download: {self.project_dir}")
 
-        self.youtube_thread = YouTubeDownloader(url, project_dir)
+        self.youtube_thread = YouTubeDownloader(url, self.project_dir)
         self.youtube_thread.progress_signal.connect(self.youtube_progress.setValue)
         self.youtube_thread.finished_signal.connect(self.youtube_download_finished)
         self.youtube_thread.error_signal.connect(self.youtube_download_error)
         self.youtube_thread.start()
     def youtube_download_finished(self, file_path):
         self.youtube_progress.hide()
-        QMessageBox.information(self, "Download Complete", f"Video saved to project folder:\n{file_path}")
-        self.load_project(os.path.dirname(file_path))  # Loads new project automatically
+        
+        # Re-enable controls
+        self.youtube_download_btn.setEnabled(True)
+        self.youtube_input.setEnabled(True)
+        
+        # Rename the downloaded file to match the app's naming convention
+        new_file_path = os.path.join(self.project_dir, "input.mp4")
+        
+        try:
+            import shutil
+            shutil.move(file_path, new_file_path)
+            print(f"[INFO] Renamed downloaded file from {file_path} to {new_file_path}")
+        except Exception as e:
+            print(f"[ERROR] Failed to rename downloaded file: {e}")
+            QMessageBox.warning(self, "Warning", f"Download completed but failed to rename file: {e}")
+            # Still try to load the project with the original filename
+            new_file_path = file_path
+        
+        # Set up the project state like normal video handling
+        self.input_path = new_file_path
+        self.input_ext = os.path.splitext(self.input_path)[1][1:]  # e.g. 'mp4'
+        self.processed_path_file = self.input_path  # Set for export functionality
+        
+        # Initialize video analysis cache
+        from backend import video_analyzer
+        video_analyzer.init_cache(self.project_dir)
+        
+        # Analyze the input video on first load
+        self.input_video_analysis = video_analyzer.analyze_video(self.input_path)
+        if self.input_video_analysis:
+            summary = video_analyzer.get_video_summary(self.input_video_analysis)
+            print(f"[INFO] YouTube video analysis: {summary}")
+        
+        # Set UI state for project loaded
+        self.set_ui_state_for_project_loaded()
+        
+        # Load video and update UI
+        self.load_video(self.input_path)
+        self.chat_log.clear()
+        self.append_chat_log("System", "YouTube video downloaded and loaded. Ready for commands.")
+        self.refresh_project_list(select=self.project_dir)
+        self.update_window_title()
+        
+        QMessageBox.information(self, "Download Complete", f"YouTube video downloaded successfully!")
     def youtube_download_error(self, error_msg):
         self.youtube_progress.hide()
+        
+        # Re-enable controls
+        self.youtube_download_btn.setEnabled(True)
+        self.youtube_input.setEnabled(True)
+        
         QMessageBox.critical(self, "Download Failed", error_msg)
 
     def append_chat_log(self, sender, message):
@@ -1634,13 +1724,15 @@ class MainWindow(QMainWindow):
         self.chat_area.hide()
         self.project_name_label.hide()
         
-        # Show drag and drop area
+        # Show YouTube download section and drag and drop area
+        self.youtube_widget.show()
         self.dragdrop.show()
 
     def set_ui_state_for_project_loaded(self):
         """Set UI state when a project is loaded with video"""
-        # Hide drag and drop area
+        # Hide drag and drop area and YouTube download section
         self.dragdrop.hide()
+        self.youtube_widget.hide()
         
         # Show video-related components
         self.video_player_widget.show()
