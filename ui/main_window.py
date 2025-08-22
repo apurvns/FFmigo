@@ -123,27 +123,59 @@ class ProjectSidebar(QWidget):
         self.vbox = QVBoxLayout(self)
         self.vbox.setContentsMargins(0, 0, 0, 0)
         self.vbox.setSpacing(0)
-        # Top row: New Project button centered + Settings button on right
+        
+        # Top row: Logo + New Project button + Settings + Help buttons (all in one row)
         from PyQt6.QtWidgets import QHBoxLayout
+        import os
+        from PyQt6.QtGui import QPixmap, QIcon
         top_row = QHBoxLayout()
         top_row.setContentsMargins(12, 12, 12, 12)
+        top_row.setSpacing(4)
         
-        # Add stretch to push new button to center
+        # App logo (left)
+        self.app_logo_label = QLabel()
+        self.app_logo_label.setFixedSize(120, 32)
+        self.app_logo_label.setScaledContents(True)
+        self.app_logo_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        
+        # Load app logo
+        logo_path = os.path.join(os.path.dirname(__file__), "resources/icons/app_in_logo.png")
+        if os.path.exists(logo_path):
+            logo_pixmap = QPixmap(logo_path)
+            if not logo_pixmap.isNull():
+                self.app_logo_label.setPixmap(logo_pixmap.scaled(120, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        
+        top_row.addWidget(self.app_logo_label)
+        
+        # Add stretch to push all buttons to right
         top_row.addStretch(1)
         
-        self.new_btn = QPushButton("+ New Project")
-        self.new_btn.setObjectName("NewProjectButton")
+        # New Project button (right)
+        self.new_btn = QPushButton()
+        self.new_btn.setObjectName("SidebarNewProjectButton")
+        new_project_icon_path_svg = os.path.join(os.path.dirname(__file__), "resources/icons/new_project.svg")
+        new_project_icon_path_png = os.path.join(os.path.dirname(__file__), "resources/icons/new_project.png")
+        if os.path.exists(new_project_icon_path_svg):
+            self.new_btn.setIcon(QIcon(new_project_icon_path_svg))
+        elif os.path.exists(new_project_icon_path_png):
+            self.new_btn.setIcon(QIcon(new_project_icon_path_png))
+        else:
+            # Fallback SVG icon for new project - matches settings icon design
+            new_project_svg_data = '''<svg width="26" height="26" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" stroke="#a259ff" stroke-width="2" fill="#2d1e3a"/><path d="M14 8v12M8 14h12" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'''
+            new_project_pixmap = QPixmap()
+            new_project_pixmap.loadFromData(bytes(new_project_svg_data, encoding='utf-8'), "SVG")
+            self.new_btn.setIcon(QIcon(new_project_pixmap))
+        self.new_btn.setToolTip("New Project")
+        self.new_btn.setFixedSize(32, 32)
+        self.new_btn.setIconSize(QSize(26, 26))
         self.new_btn.clicked.connect(self.new_project_requested.emit)
         self.new_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.new_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         top_row.addWidget(self.new_btn)
         
-        # Add stretch to push settings button to right
-        top_row.addStretch(1)
-        
+        # Settings button (right)
         self.settings_btn = QPushButton()
         self.settings_btn.setObjectName("SidebarSettingsButton")
-        import os
-        from PyQt6.QtGui import QIcon, QPixmap
         icon_path_svg = os.path.join(os.path.dirname(__file__), "resources/icons/settings.svg")
         icon_path_png = os.path.join(os.path.dirname(__file__), "resources/icons/settings.png")
         if os.path.exists(icon_path_svg):
@@ -151,18 +183,19 @@ class ProjectSidebar(QWidget):
         elif os.path.exists(icon_path_png):
             self.settings_btn.setIcon(QIcon(icon_path_png))
         else:
-            svg_data = '''<svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" stroke="#a259ff" stroke-width="2" fill="#2d1e3a"/><path d="M14 10.5A3.5 3.5 0 1 1 10.5 14 3.5 3.5 0 0 1 14 10.5m0-2A5.5 5.5 0 1 0 19.5 14 5.5 5.5 0 0 0 14 8.5Z" fill="#fff"/><path d="M14 5v2M14 21v2M5 14h2M21 14h2M7.05 7.05l1.42 1.42M19.53 19.53l1.42 1.42M7.05 20.95l1.42-1.42M19.53 8.47l1.42-1.42" stroke="#a259ff" stroke-width="1.5" stroke-linecap="round"/></svg>'''
+            svg_data = '''<svg width="26" height="26" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" stroke="#a259ff" stroke-width="2" fill="#2d1e3a"/><path d="M14 10.5A3.5 3.5 0 1 1 10.5 14 3.5 3.5 0 0 1 14 10.5m0-2A5.5 5.5 0 1 0 19.5 14 5.5 5.5 0 0 0 14 8.5Z" fill="#fff"/><path d="M14 5v2M14 21v2M5 14h2M21 14h2M7.05 7.05l1.42 1.42M19.53 19.53l1.42 1.42M7.05 20.95l1.42-1.42M19.53 8.47l1.42-1.42" stroke="#a259ff" stroke-width="1.5" stroke-linecap="round"/></svg>'''
             pixmap = QPixmap()
             pixmap.loadFromData(bytes(svg_data, encoding='utf-8'), "SVG")
             self.settings_btn.setIcon(QIcon(pixmap))
         self.settings_btn.setToolTip("Settings")
         self.settings_btn.setFixedSize(32, 32)
-        self.settings_btn.setIconSize(QSize(20, 20))
+        self.settings_btn.setIconSize(QSize(26, 26))
         self.settings_btn.clicked.connect(self.settings_requested.emit)
         self.settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.settings_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         top_row.addWidget(self.settings_btn)
         
-        # Help/Info button
+        # Help/Info button (right)
         self.help_btn = QPushButton()
         self.help_btn.setObjectName("SidebarHelpButton")
         help_icon_path_svg = os.path.join(os.path.dirname(__file__), "resources/icons/help.svg")
@@ -173,15 +206,16 @@ class ProjectSidebar(QWidget):
             self.help_btn.setIcon(QIcon(help_icon_path_png))
         else:
             # Fallback SVG icon for help - matches settings icon design
-            help_svg_data = '''<svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" stroke="#a259ff" stroke-width="2" fill="#2d1e3a"/><path d="M14 8.5a5.5 5.5 0 0 1 5.5 5.5c0 3-2.5 4.5-2.5 4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="19.5" r="1" fill="#fff"/></svg>'''
+            help_svg_data = '''<svg width="26" height="26" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" stroke="#a259ff" stroke-width="2" fill="#2d1e3a"/><path d="M14 8.5a5.5 5.5 0 0 1 5.5 5.5c0 3-2.5 4.5-2.5 4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="19.5" r="1" fill="#fff"/></svg>'''
             help_pixmap = QPixmap()
             help_pixmap.loadFromData(bytes(help_svg_data, encoding='utf-8'), "SVG")
             self.help_btn.setIcon(QIcon(help_pixmap))
         self.help_btn.setToolTip("About FFMigo")
         self.help_btn.setFixedSize(32, 32)
-        self.help_btn.setIconSize(QSize(20, 20))
+        self.help_btn.setIconSize(QSize(26, 26))
         self.help_btn.clicked.connect(self.help_requested.emit)
         self.help_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.help_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         top_row.addWidget(self.help_btn)
         
         self.vbox.addLayout(top_row)
@@ -422,6 +456,8 @@ class MainWindow(QMainWindow):
         self.project_header_layout.setContentsMargins(0, 0, 0, 0)
         self.project_header_layout.setSpacing(12)
         self.project_header_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)  # Center vertically
+        
+
         
         # Project name (left-aligned)
         self.project_name_label = QLabel("FFMigo Video Editor")
