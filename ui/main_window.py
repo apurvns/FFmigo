@@ -289,19 +289,32 @@ class YouTubeDownloader(QThread):
         super().__init__()
         self.url = url
         self.project_dir = project_dir
+        self._finished = False  # Flag to prevent multiple finish signals
         
     def run(self):
         try:
-            
             ydl_opts = {
-                'format': 'mp4',
+                'format': 'best',
                 'outtmpl': os.path.join(self.project_dir, '%(title)s.%(ext)s'),
                 'progress_hooks': [self.progress_hook],
                 'quiet': True
             }
 
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([self.url])
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([self.url])
+            except Exception as primary_error:
+                print(f"[WARNING] Primary download failed: {primary_error}")
+                # Fallback: try with worst format
+                fallback_opts = {
+                    'format': 'worst',
+                    'outtmpl': os.path.join(self.project_dir, '%(title)s.%(ext)s'),
+                    'progress_hooks': [self.progress_hook],
+                    'quiet': True
+                }
+                
+                with yt_dlp.YoutubeDL(fallback_opts) as ydl:
+                    ydl.download([self.url])
 
         except Exception as e:
             self.error_signal.emit(str(e))
@@ -339,15 +352,29 @@ class YouTubeDownloader(QThread):
                 except:
                     pass
             
+            # Method 4: Handle separate video/audio downloads
+            if percent_val == 0 and 'downloaded_bytes' in d and 'total_bytes_estimate' in d:
+                try:
+                    downloaded = d['downloaded_bytes']
+                    total = d['total_bytes_estimate']
+                    if total > 0:
+                        percent_val = int((downloaded / total) * 100)
+                except:
+                    pass
+            
             # Ensure percentage is within valid range
             percent_val = max(0, min(100, percent_val))
             
-            print(f"[DEBUG] YouTube download progress: {percent_val}%")
+            # Add stream info to debug output
+            stream_info = f" (stream: {d.get('info_dict', {}).get('format_id', 'unknown')})" if 'info_dict' in d else ""
+            print(f"[DEBUG] YouTube download progress: {percent_val}%{stream_info}")
             self.progress_signal.emit(percent_val)
             
         elif d['status'] == 'finished':
-            print(f"[DEBUG] YouTube download finished: {d.get('filename', 'unknown')}")
-            self.finished_signal.emit(d['filename'])
+            if not self._finished:  # Prevent multiple finish signals
+                self._finished = True
+                print(f"[DEBUG] YouTube download finished: {d.get('filename', 'unknown')}")
+                self.finished_signal.emit(d['filename'])
 class MainWindow(QMainWindow):
     process_result_ready = pyqtSignal(dict)
 
@@ -878,6 +905,11 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Error", "Please enter a YouTube link.")
             return
         
+        # Prevent multiple downloads
+        if hasattr(self, 'youtube_thread') and self.youtube_thread.isRunning():
+            print("[WARNING] Download already in progress")
+            return
+        
         # Reset progress bar
         self.youtube_progress.setValue(0)
         self.youtube_progress.show()
@@ -902,8 +934,30 @@ class MainWindow(QMainWindow):
         self.youtube_download_btn.setEnabled(True)
         self.youtube_input.setEnabled(True)
         
-        # Rename the downloaded file to match the app's naming convention
-        new_file_path = os.path.join(self.project_dir, "input.mp4")
+        print(f"[DEBUG] Download finished, file_path: {file_path}")
+        print(f"[DEBUG] File exists: {os.path.exists(file_path)}")
+        
+        # Check if file actually exists
+        if not os.path.exists(file_path):
+            print(f"[ERROR] Downloaded file does not exist: {file_path}")
+            QMessageBox.critical(self, "Download Error", f"Downloaded file not found: {file_path}")
+            return
+        
+        # Validate the downloaded video has both video and audio streams
+        if not self._validate_video_streams(file_path):
+            QMessageBox.warning(self, "Download Warning", 
+                              "Video downloaded but may not have audio. This could be due to:\n"
+                              "1. The original video has no audio\n"
+                              "2. Audio stream extraction failed\n"
+                              "You can still edit the video, but it will be silent.")
+        
+        # Get the actual file extension from the downloaded file
+        actual_ext = os.path.splitext(file_path)[1]
+        print(f"[DEBUG] Actual file extension: {actual_ext}")
+        
+        # Keep the original extension to preserve video+audio
+        # Don't force rename to .mp4 if it's actually a .webm file
+        new_file_path = os.path.join(self.project_dir, f"input{actual_ext}")
         
         try:
             import shutil
@@ -941,6 +995,46 @@ class MainWindow(QMainWindow):
         self.update_window_title()
         
         QMessageBox.information(self, "Download Complete", f"YouTube video downloaded successfully!")
+
+    def _validate_video_streams(self, file_path):
+        """Check if the video file has both video and audio streams"""
+        try:
+            import subprocess
+            import json
+            
+            # Use ffprobe to check streams
+            cmd = [
+                'ffprobe', 
+                '-v', 'quiet', 
+                '-print_format', 'json', 
+                '-show_streams', 
+                file_path
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            streams_info = json.loads(result.stdout)
+            
+            video_streams = [s for s in streams_info.get('streams', []) if s['codec_type'] == 'video']
+            audio_streams = [s for s in streams_info.get('streams', []) if s['codec_type'] == 'audio']
+            
+            has_video = len(video_streams) > 0
+            has_audio = len(audio_streams) > 0
+            
+            print(f"[DEBUG] Video validation - has_video: {has_video}, has_audio: {has_audio}")
+            print(f"[DEBUG] Video streams: {len(video_streams)}, Audio streams: {len(audio_streams)}")
+            
+            if has_video and not has_audio:
+                print("[WARNING] Video has no audio stream")
+            elif not has_video and has_audio:
+                print("[WARNING] File has only audio, no video")
+            elif not has_video and not has_audio:
+                print("[WARNING] File has neither video nor audio")
+            
+            return has_video and has_audio
+            
+        except Exception as e:
+            print(f"[WARNING] Could not validate video streams: {e}")
+            return True  # Assume it's valid if we can't check
     def youtube_download_error(self, error_msg):
         self.youtube_progress.hide()
         
