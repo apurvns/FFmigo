@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy, QSplitter, QListWidget, QMenu, QListWidgetItem, QHBoxLayout, QScrollArea, QListWidgetItem, QStyledItemDelegate, QFrame
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFileDialog, QLineEdit, QMessageBox, QSlider, QSizePolicy, QSplitter, QListWidget, QMenu, QListWidgetItem, QHBoxLayout, QScrollArea, QListWidgetItem, QStyledItemDelegate, QFrame, QStackedWidget
 from PyQt6.QtCore import Qt, pyqtSignal, QObject, QUrl, QTimer, QEvent, QSize, QPoint
 from PyQt6.QtGui import QPixmap, QIcon, QDragEnterEvent, QDropEvent, QFont, QAction, QPainter, QColor
 from PyQt6.QtWidgets import QStyle
@@ -9,8 +9,17 @@ from PyQt6.QtWidgets import QPushButton, QLineEdit, QProgressBar
 from PyQt6.QtCore import pyqtSignal,QThread
 import yt_dlp
 import threading
-from backend import project_manager, thumbnailer
+from backend import project_manager, thumbnailer, video_analyzer
 from ui.checkpoint_dialog import CheckpointDialog
+from backend.icon_utils import load_app_icon
+from backend import llm_client, ffmpeg_runner
+import threading
+from ui.settings_dialog import SettingsDialog
+from backend import config
+import subprocess
+import sys
+from PyQt6.QtMultimediaWidgets import QVideoWidget
+from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 
 class ProjectItemDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
@@ -20,7 +29,6 @@ class ProjectItemDelegate(QStyledItemDelegate):
             super().paint(painter, option, index)
             return
             
-        from backend import project_manager
         name = project_manager.get_project_name(project_dir)
         
         # Truncate name if too long
@@ -46,14 +54,6 @@ class ProjectItemDelegate(QStyledItemDelegate):
         painter.drawText(button_rect, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, "⋯")
         
         painter.restore()
-from backend import llm_client, ffmpeg_runner
-import threading
-from ui.settings_dialog import SettingsDialog
-from backend import config
-import subprocess
-import sys
-from PyQt6.QtMultimediaWidgets import QVideoWidget
-from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 
 class DragDropWidget(QWidget):
     files_dropped = pyqtSignal(list)  # Changed to emit list of files
@@ -419,16 +419,11 @@ class MainWindow(QMainWindow):
         
         # Set application icon (only if not already set by main.py)
         if not self.windowIcon():
-            icon_path = os.path.join(os.path.dirname(__file__), 'resources/icons/app_logo.svg')
-            if os.path.exists(icon_path):
-                self.setWindowIcon(QIcon(icon_path))
-            else:
-                # Fallback to PNG if SVG doesn't exist
-                png_icon_path = os.path.join(os.path.dirname(__file__), 'resources/icons/app_logo.png')
-                if os.path.exists(png_icon_path):
-                    self.setWindowIcon(QIcon(png_icon_path))
+            app_icon = load_app_icon()
+            if app_icon and not app_icon.isNull():
+                self.setWindowIcon(app_icon)
         
-        self.setStyleSheet(open(os.path.join(os.path.dirname(__file__), '../style.qss')).read())
+        # Do not set a window-local stylesheet; rely on application-level stylesheet
         self.setContentsMargins(0, 0, 0, 0)
         # Load config
         self.app_config = config.get_config()
@@ -450,18 +445,36 @@ class MainWindow(QMainWindow):
         self.vbox = QVBoxLayout(self.main_area)
         self.vbox.setContentsMargins(40, 32, 40, 32)  # Consistent margins for all main content
         self.vbox.setSpacing(24)
+        
+        # Create stacked widget for switching between views
+        self.stacked_widget = QStackedWidget()
+        self.vbox.addWidget(self.stacked_widget)
+        
+        # Create containers for each stack
+        self.project_stack = QWidget()
+        self.content_stack = QWidget()
+        
+        # Add stacks to stacked widget
+        self.stacked_widget.addWidget(self.project_stack)
+        self.stacked_widget.addWidget(self.content_stack)
+        
+        # Create layouts for each stack
+        self.project_stack_layout = QVBoxLayout(self.project_stack)
+        self.project_stack_layout.setContentsMargins(0, 0, 0, 0)
+        self.content_stack_layout = QVBoxLayout(self.content_stack)
+        self.content_stack_layout.setContentsMargins(0, 0, 0, 0)
         # Project header with edit and delete options
         self.project_header = QWidget()
         self.project_header_layout = QHBoxLayout(self.project_header)
         self.project_header_layout.setContentsMargins(0, 0, 0, 0)
         self.project_header_layout.setSpacing(12)
-        self.project_header_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)  # Center vertically
+        #self.project_header_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)  # Center vertically
         
 
         
         # Project name (left-aligned)
         self.project_name_label = QLabel("FFMigo Video Editor")
-        self.project_name_label.setStyleSheet("font-size: 32px; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px; color: #e6eaf3;")
+        self.project_name_label.setObjectName("ProjectNameLabel")
         self.project_name_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.project_header_layout.addWidget(self.project_name_label)
         
@@ -514,11 +527,7 @@ class MainWindow(QMainWindow):
         self.edit_project_btn.hide()
         self.delete_project_btn.hide()
         
-        self.vbox.addWidget(self.project_header)
-        # Drag-and-drop area
-        self.dragdrop = DragDropWidget()
-        self.dragdrop.files_dropped.connect(self.on_files_dropped)
-        self.vbox.addWidget(self.dragdrop, stretch=7)
+        self.content_stack_layout.addWidget(self.project_header)
         # Main content area with adjustable splitter
         self.main_content_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.main_content_splitter.setHandleWidth(4)  # Increased handle width for better visual separation
@@ -618,7 +627,7 @@ class MainWindow(QMainWindow):
         
         self.video_player_widget.hide()
         self.terminal_widget.hide()
-        self.vbox.addWidget(self.main_content_splitter, stretch=1)
+        self.content_stack_layout.addWidget(self.main_content_splitter, stretch=1)
         # Media player setup
         self.media_player = QMediaPlayer()
         self.audio_output = QAudioOutput()
@@ -639,10 +648,6 @@ class MainWindow(QMainWindow):
         self.youtube_input = QLineEdit()
         self.youtube_input.setPlaceholderText("Paste YouTube link here...")
         youtube_layout.addWidget(self.youtube_input, stretch=1)  # Give input field more space
-        self.youtube_download_btn = QPushButton("Download")
-        self.youtube_download_btn.clicked.connect(self.download_youtube_video)
-        self.youtube_download_btn.setFixedWidth(80)  # Fixed width for button
-        youtube_layout.addWidget(self.youtube_download_btn)
         self.youtube_progress = QProgressBar()
         self.youtube_progress.setValue(0)
         self.youtube_progress.setFormat("")  # No text to avoid overlap
@@ -653,7 +658,7 @@ class MainWindow(QMainWindow):
         youtube_layout.addWidget(self.youtube_progress)
         self.youtube_widget = QWidget()
         self.youtube_widget.setLayout(youtube_layout)
-        self.vbox.addWidget(self.youtube_widget)
+        self.content_stack_layout.addWidget(self.youtube_widget)
         
         # Chat input area - ChatGPT-style design
         self.chat_area = QWidget()
@@ -807,7 +812,7 @@ class MainWindow(QMainWindow):
         chat_layout.addWidget(self.action_buttons)  # Add action buttons above chat input
         chat_layout.addWidget(self.attachment_bar)
         chat_layout.addWidget(input_container)
-        self.vbox.addWidget(self.chat_area, stretch=0)
+        self.content_stack_layout.addWidget(self.chat_area, stretch=0)
         
         # State
         self.project_dir = None
@@ -824,6 +829,11 @@ class MainWindow(QMainWindow):
         
         # Set initial UI state for no project
         self.set_ui_state_for_no_project()
+        
+        # Initialize new project widget
+        if not hasattr(self, 'new_project_widget'):
+            self._create_new_project_layout()
+            self.new_project_widget.show()
         
         self.showMaximized()  # Start maximized, preferred for desktop apps
 
@@ -864,7 +874,6 @@ class MainWindow(QMainWindow):
         self.processed_path_file = self.input_path  # Set for export functionality
         
         # Initialize video analysis cache
-        from backend import video_analyzer
         video_analyzer.init_cache(self.project_dir)
         
         # Analyze the input video on first load
@@ -889,7 +898,6 @@ class MainWindow(QMainWindow):
         self.project_dir = project_manager.create_project_dir()
         
         # Initialize video analysis cache
-        from backend import video_analyzer
         video_analyzer.init_cache(self.project_dir)
         
         # Create output path for merged video
@@ -909,7 +917,6 @@ class MainWindow(QMainWindow):
         self.processed_path_file = self.input_path  # Set for export functionality
         
         # Analyze the merged video
-        from backend import video_analyzer
         self.input_video_analysis = video_analyzer.analyze_video(self.input_path)
         if self.input_video_analysis:
             summary = video_analyzer.get_video_summary(self.input_video_analysis)
@@ -951,7 +958,7 @@ class MainWindow(QMainWindow):
         self.youtube_progress.show()
         
         # Disable download button during download
-        self.youtube_download_btn.setEnabled(False)
+        #self.youtube_download_btn.setEnabled(False)
         self.youtube_input.setEnabled(False)
 
         # Use the proper project manager to create project directory
@@ -967,7 +974,7 @@ class MainWindow(QMainWindow):
         self.youtube_progress.hide()
         
         # Re-enable controls
-        self.youtube_download_btn.setEnabled(True)
+        #self.youtube_download_btn.setEnabled(True)
         self.youtube_input.setEnabled(True)
         
         print(f"[DEBUG] Download finished, file_path: {file_path}")
@@ -1011,7 +1018,6 @@ class MainWindow(QMainWindow):
         self.processed_path_file = self.input_path  # Set for export functionality
         
         # Initialize video analysis cache
-        from backend import video_analyzer
         video_analyzer.init_cache(self.project_dir)
         
         # Analyze the input video on first load
@@ -1075,7 +1081,7 @@ class MainWindow(QMainWindow):
         self.youtube_progress.hide()
         
         # Re-enable controls
-        self.youtube_download_btn.setEnabled(True)
+        #self.youtube_download_btn.setEnabled(True)
         self.youtube_input.setEnabled(True)
         
         QMessageBox.critical(self, "Download Failed", error_msg)
@@ -1229,130 +1235,8 @@ class MainWindow(QMainWindow):
 
     def open_help(self):
         """Open the help/about dialog"""
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton
-        
-        dlg = QDialog(self)
-        dlg.setWindowTitle("About FFMigo")
-        dlg.setFixedSize(500, 400)
-        dlg.setModal(True)
-        
-        layout = QVBoxLayout(dlg)
-        layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(24)
-        
-        # App title and version
-        title = QLabel("FFMigo Video Editor")
-        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #a259ff; margin-bottom: 8px;")
-        title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(title)
-        
-        version = QLabel("Version 1.0")
-        version.setStyleSheet("font-size: 14px; color: #888888; margin-bottom: 16px;")
-        version.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(version)
-        
-        # Description
-        desc = QLabel("AI-powered video editing with natural language commands. Transform your videos using simple text descriptions.")
-        desc.setWordWrap(True)
-        desc.setStyleSheet("font-size: 13px; line-height: 1.4; color: #666666; margin-bottom: 24px;")
-        desc.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(desc)
-        
-        # Developer info
-        dev_info = QLabel("Developed by Apurv")
-        dev_info.setStyleSheet("font-size: 14px; font-weight: 600; color: #333333; margin-bottom: 8px;")
-        dev_info.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(dev_info)
-        
-        # Links section
-        links_layout = QHBoxLayout()
-        links_layout.setSpacing(20)
-        links_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        
-        # Twitter link
-        twitter_btn = QPushButton("🐦 Twitter")
-        twitter_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1DA1F2;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                background-color: #1a8cd8;
-            }
-        """)
-        twitter_btn.clicked.connect(lambda: self.open_url("https://twitter.com/apurvns"))
-        links_layout.addWidget(twitter_btn)
-        
-        # GitHub link
-        github_btn = QPushButton("📦 GitHub")
-        github_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #333333;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                background-color: #555555;
-            }
-        """)
-        github_btn.clicked.connect(lambda: self.open_url("https://github.com/apurvns/ffmigo"))
-        links_layout.addWidget(github_btn)
-        
-        # Contributors link
-        contributors_btn = QPushButton("👥 Contributors")
-        contributors_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #6C757D;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-        """)
-        contributors_btn.clicked.connect(lambda: self.open_url("https://github.com/apurvns/ffmigo/graphs/contributors"))
-        links_layout.addWidget(contributors_btn)
-        
-        layout.addLayout(links_layout)
-        
-        # Close button
-        close_btn = QPushButton("Close")
-        close_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #a259ff;
-                color: white;
-                border: none;
-                padding: 10px 24px;
-                border-radius: 6px;
-                font-size: 13px;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                background-color: #8a4fd8;
-            }
-        """)
-        close_btn.clicked.connect(dlg.accept)
-        close_btn.setFixedWidth(120)
-        
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch(1)
-        btn_layout.addWidget(close_btn)
-        btn_layout.addStretch(1)
-        layout.addLayout(btn_layout)
-        
+        from ui.about_dialog import AboutDialog
+        dlg = AboutDialog(self.app_config, self)
         dlg.exec()
 
     def open_url(self, url):
@@ -1541,13 +1425,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Error", f"Could not open project directory: {e}")
 
     def export_processed_video(self):
-        print("EXPORT BUTTON CLICKED!")
-        print(f"[DEBUG] export_processed_video: input_path={self.input_path}")
-        print(f"[DEBUG] export_processed_video: input_path exists={os.path.exists(self.input_path) if self.input_path else False}")
-        print(f"[DEBUG] export_processed_video: export button enabled: {self.export_btn.isEnabled()}")
-        
         if not self.input_path or not os.path.exists(self.input_path):
-            print("EXPORT FAILED: No input path or file doesn't exist")
             QMessageBox.warning(self, "Export Failed", "No video to export.")
             return
         
@@ -1556,23 +1434,16 @@ class MainWindow(QMainWindow):
         
         default_dir = self.app_config.get('export_dir', os.path.expanduser('~'))
         suggested_name = os.path.basename(self.input_path)
-        print(f"[DEBUG] export_processed_video: suggested_name={suggested_name}")
         
         fname, _ = QFileDialog.getSaveFileName(self, "Export Video", os.path.join(default_dir, suggested_name))
-        print(f"[DEBUG] export_processed_video: selected fname={fname}")
         
         if fname:
             try:
                 import shutil
-                print(f"[DEBUG] export_processed_video: copying {self.input_path} to {fname}")
                 shutil.copy2(self.input_path, fname)
-                print("EXPORT SUCCESS!")
                 QMessageBox.information(self, "Export", f"Exported to {fname}")
             except Exception as e:
-                print(f"[ERROR] export_processed_video: exception: {e}")
                 QMessageBox.warning(self, "Export Failed", str(e))
-        else:
-            print("EXPORT CANCELLED: User cancelled file dialog")
 
     def process_command(self, user_text, retry_count=0):
         # Use config values
@@ -1600,7 +1471,6 @@ class MainWindow(QMainWindow):
         attachments_payload = []
         attachment_video_info = {}
         try:
-            from backend import video_analyzer
             for a in self.pending_attachments:
                 attachments_payload.append({
                     'name': a.get('name',''),
@@ -1620,7 +1490,6 @@ class MainWindow(QMainWindow):
         # Prepare video analysis info for LLM
         input_video_info = None
         if self.input_video_analysis:
-            from backend import video_analyzer
             input_video_info = video_analyzer.get_video_summary(self.input_video_analysis)
         
         # Get FFmpeg command from LLM
@@ -1829,16 +1698,13 @@ class MainWindow(QMainWindow):
         self.send_btn.setEnabled(bool(text) and not self.chat_input.isReadOnly())
 
     def refresh_project_list(self, select=None):
-        from backend import project_manager
         projects = project_manager.list_projects()
         self.sidebar.set_projects(projects, selected=select or self.project_dir)
 
     def set_ui_state_for_no_project(self):
         """Set UI state when no project is loaded (app startup or new project)"""
-        # Hide video-related components
-        self.video_player_widget.hide()
-        self.terminal_widget.hide()
-        self.media_controls.hide()
+        # Switch to new project view
+        self.stacked_widget.setCurrentWidget(self.project_stack)
         
         # Disable action buttons
         self.export_btn.setEnabled(False)
@@ -1846,28 +1712,225 @@ class MainWindow(QMainWindow):
         self.checkpoint_btn.setEnabled(False)
         self.undo_btn.setEnabled(False)
         
-        # Hide action UI elements
-        self.action_separator.hide()
-        self.action_buttons.hide()
-        
-        # Hide chat area and title
-        self.chat_area.hide()
+        # Update window title
         self.project_name_label.hide()
         
-        # Show YouTube download section and drag and drop area
-        self.youtube_widget.show()
-        self.dragdrop.show()
+        # Create professional new project layout
+        #self._create_new_project_layout()
+        
+        # Show the new project layout
+        #self.new_project_widget.show()
+
+    def _create_new_project_layout(self):
+        """Create a professional new project layout with two main options"""
+        # Remove existing new project widget if it exists
+        if hasattr(self, 'new_project_widget'):
+            self.new_project_widget.deleteLater()
+        
+        # Create main container
+        self.new_project_widget = QWidget()
+        self.new_project_widget.setObjectName("NewProjectContainer")
+        
+        # Main layout
+        main_layout = QVBoxLayout(self.new_project_widget)
+        main_layout.setContentsMargins(60, 40, 60, 40)
+        main_layout.setSpacing(24)  # Reduced spacing between elements
+        # Welcome header
+        welcome_header = QWidget()
+        welcome_layout = QVBoxLayout(welcome_header)
+        welcome_layout.setContentsMargins(0, 0, 0, 0)
+        welcome_layout.setSpacing(12)
+        
+        title = QLabel("Create New Project")
+        title.setObjectName("NewProjectTitle")
+        title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        
+        subtitle = QLabel("Choose how you'd like to add your video content")
+        subtitle.setObjectName("NewProjectSubtitle")
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        
+        welcome_layout.addWidget(title)
+        welcome_layout.addWidget(subtitle)
+        main_layout.addWidget(welcome_header)
+        
+        # Two-column layout for options
+        options_container = QWidget()
+        options_container.setContentsMargins(0, 100, 0, 0)  # Add top margin to push options down
+        options_layout = QHBoxLayout(options_container)
+        options_layout.setContentsMargins(0, 0, 0, 0)
+        options_layout.setSpacing(40)
+        
+        # Left column: Drag & Drop
+        drag_drop_column = QWidget()
+        drag_drop_column.setObjectName("DragDropColumn")
+        drag_drop_column.setFixedWidth(400)
+        drag_drop_layout = QVBoxLayout(drag_drop_column)
+        drag_drop_layout.setContentsMargins(0, 0, 0, 0)
+        drag_drop_layout.setSpacing(20)
+        
+        # Drag & Drop header
+        drag_header = QLabel("Upload Local Video")
+        drag_header.setObjectName("OptionHeader")
+        drag_header.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        drag_drop_layout.addWidget(drag_header)
+        
+        # Drag & Drop description
+        drag_desc = QLabel("Drag and drop video files here or click to browse")
+        drag_desc.setObjectName("OptionDescription")
+        drag_desc.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        drag_desc.setWordWrap(True)
+        drag_drop_layout.addWidget(drag_desc)
+        
+        # Enhanced drag & drop area
+        enhanced_dragdrop = self._create_enhanced_dragdrop()
+        drag_drop_layout.addWidget(enhanced_dragdrop)
+        
+        # Supported formats
+        formats_label = QLabel("Supported: MP4, MOV, AVI, MKV, WebM, FLV, WMV")
+        formats_label.setObjectName("FormatsLabel")
+        formats_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        drag_drop_layout.addWidget(formats_label)
+        
+        # Right column: YouTube Download
+        youtube_column = QWidget()
+        youtube_column.setObjectName("YouTubeColumn")
+        youtube_column.setFixedWidth(400)
+        youtube_layout = QVBoxLayout(youtube_column)
+        youtube_layout.setContentsMargins(0, 0, 0, 0)
+        youtube_layout.setSpacing(20)
+        
+        # YouTube header
+        youtube_header = QLabel("Download from YouTube")
+        youtube_header.setObjectName("OptionHeader")
+        youtube_header.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        youtube_layout.addWidget(youtube_header)
+        
+        # YouTube description
+        youtube_desc = QLabel("Paste a YouTube link to download and edit the video")
+        youtube_desc.setObjectName("OptionDescription")
+        youtube_desc.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        youtube_desc.setWordWrap(True)
+        youtube_layout.addWidget(youtube_desc)
+        
+        # Enhanced YouTube download area
+        enhanced_youtube = self._create_enhanced_youtube_download()
+        youtube_layout.addWidget(enhanced_youtube)
+        
+        # YouTube info
+        youtube_info = QLabel("Downloads best quality available")
+        youtube_info.setObjectName("YouTubeInfo")
+        youtube_info.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        youtube_layout.addWidget(youtube_info)
+        
+        # Add columns to options container
+        options_layout.addStretch(1)
+        options_layout.addWidget(drag_drop_column)
+        options_layout.addWidget(youtube_column)
+        options_layout.addStretch(1)
+        
+        main_layout.addWidget(options_container)
+        
+        # Add to main layout with stretch after to push content to top
+        self.project_stack_layout.addWidget(self.new_project_widget)
+        self.project_stack_layout.addStretch(1)  # Add stretch only after content to push it up
+
+    def _create_enhanced_dragdrop(self):
+        """Create an enhanced drag and drop widget"""
+        container = QWidget()
+        container.setObjectName("EnhancedDragDropContainer")
+        container.setMinimumHeight(280)
+        container.setMaximumHeight(320)
+        
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Icon
+        icon_label = QLabel()
+        icon_label.setObjectName("DragDropIcon")
+        icon_label.setFixedSize(55, 55)
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        icon_label.setText("📁")
+                   
+        layout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        # Text
+        text_label = QLabel("Drag & Drop Video Files Here")
+        text_label.setObjectName("DragDropText")
+        text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(text_label)
+        
+        # Subtext
+        subtext_label = QLabel("or click to browse files")
+        subtext_label.setObjectName("DragDropSubtext")
+        subtext_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(subtext_label)
+        
+        # Create a drag drop widget for handling drops and clicks
+        drag_drop_handler = DragDropWidget()
+        drag_drop_handler.files_dropped.connect(self.on_files_dropped)
+        
+        # Make the container accept drops and handle clicks
+        container.setAcceptDrops(True)
+        container.dragEnterEvent = lambda event: drag_drop_handler.dragEnterEvent(event)
+        container.dropEvent = lambda event: drag_drop_handler.dropEvent(event)
+        container.mousePressEvent = lambda event: drag_drop_handler.mousePressEvent(event)
+        
+        return container
+
+    def _create_enhanced_youtube_download(self):
+        """Create an enhanced YouTube download widget"""
+        container = QWidget()
+        container.setObjectName("EnhancedYouTubeContainer")
+        container.setMinimumHeight(280)
+        container.setMaximumHeight(320)
+        
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Icon
+        icon_label = QLabel()
+        icon_label.setObjectName("YouTubeIcon")
+        icon_label.setFixedSize(50, 50)
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon_label.setText("▶")
+        layout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        # Input field
+        input_container = QWidget()
+        input_layout = QVBoxLayout(input_container)
+        input_layout.setContentsMargins(0, 0, 0, 0)
+        input_layout.setSpacing(12)
+        input_container.setObjectName("YouTubeInputContainer")
+            
+        # URL input
+        self.youtube_input.setPlaceholderText("Paste YouTube URL and press Enter to download...")
+        self.youtube_input.setObjectName("YouTubeUrlInput")
+        # Connect Enter key press to download function
+        self.youtube_input.returnPressed.connect(self.download_youtube_video)
+        input_layout.addWidget(self.youtube_input)
+        
+        # Progress bar
+        self.youtube_progress.setObjectName("YouTubeProgressBar")
+        input_layout.addWidget(self.youtube_progress)
+        
+        layout.addWidget(input_container)
+        
+        return container
 
     def set_ui_state_for_project_loaded(self):
         """Set UI state when a project is loaded with video"""
-        # Hide drag and drop area and YouTube download section
-        self.dragdrop.hide()
-        self.youtube_widget.hide()
-        
-        # Show video-related components
+        # Show video and terminal widgets first
         self.video_player_widget.show()
         self.terminal_widget.show()
         self.media_controls.show()
+        
+        # Switch to content view
+        self.stacked_widget.setCurrentWidget(self.content_stack)
         
         # Enable action buttons
         self.export_btn.setEnabled(False)  # Will be enabled after processing
@@ -1887,7 +1950,7 @@ class MainWindow(QMainWindow):
         self.chat_input.setDisabled(False)
 
     def create_new_project(self):
-        # Reset state and show drag-and-drop area for a new project
+        # Reset state and show new project layout
         self.project_dir = None
         self.input_path = None
         self.input_ext = None
@@ -1900,12 +1963,11 @@ class MainWindow(QMainWindow):
         
         # Clear chat and show message
         self.chat_log.clear()
-        self.append_chat_log("System", "Create a new project by dragging and dropping a video file.")
+        self.append_chat_log("System", "Create a new project by uploading a video or downloading from YouTube.")
         self.update_window_title()
 
     def rename_project(self, proj_dir):
         from PyQt6.QtWidgets import QInputDialog
-        from backend import project_manager
         cur_name = project_manager.get_project_name(proj_dir)
         new_name, ok = QInputDialog.getText(self, "Rename Project", "New name:", text=cur_name)
         if ok and new_name and new_name != cur_name:
@@ -1917,7 +1979,6 @@ class MainWindow(QMainWindow):
 
     def delete_project(self, proj_dir):
         from PyQt6.QtWidgets import QMessageBox
-        from backend import project_manager
         reply = QMessageBox.question(self, "Delete Project", f"Are you sure you want to delete this project? This cannot be undone.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
             import shutil
@@ -1984,7 +2045,6 @@ class MainWindow(QMainWindow):
         self.processed_path_file = input_path  # Update processed_path_file for export
         
         # Initialize video analysis cache and analyze current input
-        from backend import video_analyzer
         video_analyzer.init_cache(self.project_dir)
         self.input_video_analysis = video_analyzer.analyze_video(self.input_path)
         if self.input_video_analysis:

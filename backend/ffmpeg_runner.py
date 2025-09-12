@@ -5,35 +5,61 @@ import os
 import platform
 
 def validate_ffmpeg_command(cmd):
+    """
+    Validate FFmpeg command for security and basic correctness.
+    Blocks dangerous patterns while allowing valid commands.
+    """
+    cmd = cmd.strip()
+    
     # Must start with ffmpeg
-    if not cmd.strip().startswith('ffmpeg'):
+    if not cmd.startswith('ffmpeg'):
         return False, 'Command must start with ffmpeg.'
-    # Must contain input*. and output.
-    if not re.search(r'input(_[0-9]+)?\.[a-zA-Z0-9]+', cmd) or 'output.' not in cmd:
-        return False, 'Command must reference input*.ext and output.[ext].'
+    
+    
+    # Block attempts to execute other programs
+    dangerous_programs = ['rm ', 'del ', 'format ', 'mkfs', 'dd ', 'shutdown', 'reboot', 'sudo ', 'su ', 'chmod ', 'chown ']
+    for prog in dangerous_programs:
+        if prog in cmd.lower():
+            return False, f'Command attempts to execute dangerous program: {prog.strip()}'
+    
+    # Block path traversal attempts
+    path_traversal_patterns = ['../', '..\\', '/etc/', '/bin/', '/usr/bin/', '/sbin/', '/usr/sbin/', '/root/', '/home/', 'C:\\', 'D:\\', 'E:\\']
+    for pattern in path_traversal_patterns:
+        if pattern in cmd:
+            return False, f'Command contains path traversal attempt: {pattern}'
+    
+    # Block attempts to write to system directories or outside project
+    system_write_patterns = ['/tmp/', '/var/', '/proc/', '/sys/', 'C:\\Windows\\', 'C:\\Program Files\\', 'C:\\ProgramData\\']
+    for pattern in system_write_patterns:
+        if pattern in cmd.lower():
+            return False, f'Command attempts to write to system directory: {pattern}'
+    
+    # Must contain valid input and output references (basic check)
+    # Allow flexible input patterns: input.ext, input_1.ext, etc.
+    input_pattern = r'input(_\d+)?\.[a-zA-Z0-9]+'
+    if not re.search(input_pattern, cmd):
+        return False, 'Command must reference input file in format input.ext or input_N.ext'
+    
+    # Must contain output reference
+    if 'output.' not in cmd:
+        return False, 'Command must reference output file as output.ext'
+    
+    # Block multiple output files (security concern)
+    output_count = cmd.count('output.')
+    if output_count > 1:
+        return False, 'Command cannot have multiple output files'
+    
+    # Block attempts to overwrite input files
+    if re.search(r'output\.\w+.*input', cmd) or re.search(r'input.*output\.\w+', cmd):
+        # Check if output filename matches input filename pattern
+        input_match = re.search(input_pattern, cmd)
+        if input_match:
+            input_file = input_match.group()
+            if input_file.replace('input', 'output') in cmd:
+                return False, 'Command cannot overwrite input files'
+    
     
     return True, ''
-
-    # Disallow dangerous shell metacharacters (allow colon for FFmpeg filter args)
-    # if re.search(r'[;&|`$]', cmd):
-    #     return False, 'Command contains forbidden shell characters.'
-    # # Should be a single command
-    # if '\n' in cmd:
-    #     return False, 'Command must be a single line.'
-    # # Output file must be exactly output.<ext> (no path, no slash, no parent dir)
-    # match = re.search(r'output\.([a-zA-Z0-9]+)', cmd)
-    # if not match:
-    #     return False, 'Output file must be named output.<ext>.'
-    # output_token = f"output.{match.group(1)}"
-    # # Check for any slash or path in output
-    # if f"output/{match.group(1)}" in cmd or f"output\\{match.group(1)}" in cmd or f"../output.{match.group(1)}" in cmd or f"/output.{match.group(1)}" in cmd:
-    #     return False, 'Output file must not contain any path or directory.'
-    # # Check for output.<ext> with any path prefix
-    # tokens = shlex.split(cmd)
-    # for t in tokens:
-    #     if t.startswith('output.') and (os.path.sep in t or '/' in t or '\\' in t):
-    #         return False, 'Output file must not contain any path or directory.'
-    # return True, ''
 
 def find_ffmpeg():
     """Find FFmpeg executable in common locations"""

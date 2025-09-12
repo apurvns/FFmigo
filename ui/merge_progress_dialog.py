@@ -47,17 +47,7 @@ class MergeProgressDialog(QDialog):
         self.video_list = QTextEdit()
         self.video_list.setMaximumHeight(120)
         self.video_list.setReadOnly(True)
-        self.video_list.setStyleSheet("""
-            QTextEdit {
-                background-color: #2d1e3a;
-                border: 1px solid #444;
-                border-radius: 4px;
-                padding: 8px;
-                font-family: monospace;
-                font-size: 11px;
-                color: #e6eaf3;
-            }
-        """)
+        self.video_list.setObjectName("MergeVideoList")
         
         # Show video list
         video_text = ""
@@ -86,24 +76,13 @@ class MergeProgressDialog(QDialog):
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                border: 2px solid #ddd;
-                border-radius: 6px;
-                text-align: center;
-                font-weight: bold;
-            }
-            QProgressBar::chunk {
-                background-color: #a259ff;
-                border-radius: 4px;
-            }
-        """)
+        self.progress_bar.setObjectName("MergeProgressBar")
         progress_layout.addWidget(self.progress_bar)
         
         # Details label
         self.details_label = QLabel("")
         self.details_label.setWordWrap(True)
-        self.details_label.setStyleSheet("color: #666; font-size: 11px;")
+        self.details_label.setObjectName("MergeDetailsLabel")
         progress_layout.addWidget(self.details_label)
         
         layout.addLayout(progress_layout)
@@ -112,22 +91,7 @@ class MergeProgressDialog(QDialog):
         self.cancel_btn = QPushButton("Cancel")
         self.cancel_btn.setEnabled(True)  # Enable during merge
         self.cancel_btn.clicked.connect(self.cancel_merge)
-        self.cancel_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #dc3545;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #c82333;
-            }
-            QPushButton:disabled {
-                background-color: #6c757d;
-            }
-        """)
+        self.cancel_btn.setObjectName("MergeCancelButton")
         
         btn_layout = QHBoxLayout()
         btn_layout.addStretch(1)
@@ -194,19 +158,7 @@ class MergeProgressDialog(QDialog):
         """Handle successful merge completion"""
         self.merge_completed_flag = True
         self.cancel_btn.setText("Close")
-        self.cancel_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-        """)
+        self.cancel_btn.setObjectName("MergeCloseSuccessButton")
         # Auto-close after a short delay
         QTimer.singleShot(1500, self.accept)
     
@@ -214,19 +166,7 @@ class MergeProgressDialog(QDialog):
         """Handle failed merge"""
         self.merge_completed_flag = True
         self.cancel_btn.setText("Close")
-        self.cancel_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #dc3545;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #c82333;
-            }
-        """)
+        self.cancel_btn.setObjectName("MergeCloseErrorButton")
         # Don't auto-close on failure, let user read the error
     
     def cancel_merge(self):

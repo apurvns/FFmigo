@@ -162,11 +162,17 @@ def _call_llm(prompt, endpoint, model, provider, api_key):
             else:
                 return None
         elif provider == 'Claude':
-            # Claude: content in response
-            if 'content' in data:
-                raw = data['content'].strip()
-            elif 'messages' in data and data['messages']:
-                raw = data['messages'][0]['content'].strip()
+            # Claude Messages API: content is an array of objects with type and text
+            if 'content' in data and isinstance(data['content'], list) and data['content']:
+                # Extract text from content array
+                text_parts = []
+                for item in data['content']:
+                    if item.get('type') == 'text' and 'text' in item:
+                        text_parts.append(item['text'])
+                if text_parts:
+                    raw = ''.join(text_parts).strip()
+                else:
+                    return None
             else:
                 return None
         else:

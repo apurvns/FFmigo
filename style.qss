@@ -113,11 +113,151 @@ QSplitter::handle:hover {
 }
 #DragDropIcon {
     margin-bottom: 18px;
+    font-size: 46px;
+    color: #a259ff;
+    background: transparent;
 }
 #DragDropText {
-    color: #b6b1c9;
-    font-size: 18px;
-    font-weight: 500;
+    color: #e6eaf3;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    background: transparent;
+}
+
+/* New Project + About content moved from inline */
+#ProjectNameLabel {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+    color: #e6eaf3;
+}
+#NewProjectTitle {
+    font-size: 36px;
+    font-weight: 800;
+    color: #e6eaf3;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+#NewProjectSubtitle {
+    font-size: 16px;
+    color: #888888;
+    font-weight: 400;
+}
+#OptionHeader {
+    font-size: 20px;
+    font-weight: 700;
+    color: #e6eaf3;
+    margin-bottom: 8px;
+}
+#OptionDescription {
+    font-size: 14px;
+    color: #888888;
+    text-align: center;
+    background: transparent;
+}
+#FormatsLabel, #YouTubeInfo {
+    font-size: 12px;
+    color: #666666;
+    text-align: center;
+    margin-top: 8px;
+}
+#DragDropSubtext {
+    font-size: 14px;
+    color: #888888;
+    text-align: center;
+    background: transparent;
+}
+
+/* YouTube icon and inputs */
+#YouTubeIcon {
+    background-color: red;
+    border-radius: 10px;
+    color: white;
+    font-size: 28px;
+    padding: 10px 10px;
+    margin: 0;
+}
+#YouTubeInputContainer {
+    background: transparent;
+}
+#YouTubeUrlInput {
+    background-color: #2d1e3a;
+    border: 2px solid #444444;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #e6eaf3;
+    min-height: 20px;
+}
+#YouTubeUrlInput:focus {
+    border-color: #a259ff;
+}
+#YouTubeUrlInput::placeholder {
+    color: #888888;
+}
+#YouTubeProgressBar {
+    border: 2px solid #444444;
+    border-radius: 6px;
+    text-align: center;
+    background-color: #2d1e3a;
+    color: #e6eaf3;
+    font-size: 12px;
+    font-weight: 600;
+}
+#YouTubeProgressBar::chunk {
+    background-color: #a259ff;
+    border-radius: 4px;
+}
+
+/* New Project Layout Styles */
+#NewProjectContainer {
+    background: transparent;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+#DragDropColumn, #YouTubeColumn {
+    /*background: #221a2c;
+    border: 2px solid #3a2e4a;
+    border-radius: 20px;*/
+    padding: 24px;
+    margin: 0;
+}
+
+/*#DragDropColumn:hover, #YouTubeColumn:hover {
+    border-color: #a259ff;
+    background: #2a1f35;
+}*/
+
+#EnhancedDragDropContainer {
+    background: #2d1e3a;
+    border: 2px dashed #5a4e6a;
+    border-radius: 16px;
+    margin: 0;
+    padding: 0;
+    /*transition: all 0.2s ease;*/
+}
+
+#EnhancedDragDropContainer:hover {
+    border-color: #a259ff;
+    background: #3a2e4a;
+}
+
+#EnhancedYouTubeContainer {
+    background: #2d1e3a;
+    border: 2px solid #5a4e6a;
+    border-radius: 16px;
+    margin: 0;
+    padding: 0;
+    /*transition: all 0.2s ease;*/
+}
+
+#EnhancedYouTubeContainer:hover {
+    border-color: #a259ff;
+    background: #3a2e4a;
 }
 
 /* Video Player Container */
@@ -227,14 +367,14 @@ QSplitter::handle:hover {
     border-radius: 20px;
     margin: 0;
     padding: 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    /*box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);*/
     max-height:8em;
 }
 
 #ChatInputContainer:focus-within {
     border-color: #a259ff;
-    box-shadow: 0 0 0 2px rgba(162, 89, 255, 0.2);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    /*box-shadow: 0 0 0 2px rgba(162, 89, 255, 0.2);*/
+    /*transition: border-color 0.2s ease, box-shadow 0.2s ease;*/
 }
 
 #ChatInput {
@@ -422,7 +562,7 @@ QSlider::handle:horizontal {
     width: 20px;
     margin: -6px 0;
     border-radius: 10px;
-    box-shadow: 0 2px 8px #a259ff44;
+    /*box-shadow: 0 2px 8px #a259ff44;*/
 }
 #TimeLabel {
     color: #b6b1c9;
@@ -486,10 +626,10 @@ QSlider::handle:horizontal {
     background: #a259ff;
     color: #fff;
 }
-#SidebarSettingsButton:pressed, #SidebarNewProjectButton:pressed, , #SidebarHelpButton:pressed {
+#SidebarSettingsButton:pressed, #SidebarNewProjectButton:pressed, #SidebarHelpButton:pressed {
     background: #6a3ea1;
 }
-#SidebarSettingsButton:focus, #SidebarNewProjectButton:focus, , #SidebarHelpButton:focus {
+#SidebarSettingsButton:focus, #SidebarNewProjectButton:focus, #SidebarHelpButton:focus {
     outline: none;
     border: 2px solid #a259ff;
 }
@@ -604,3 +744,158 @@ QProgressDialog QPushButton:hover {
     background: #a259ff;
     border-color: #a259ff;
 } 
+
+/* Merge progress dialog styles moved from inline */
+#MergeVideoList {
+    background-color: #2d1e3a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 8px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #e6eaf3;
+}
+#MergeProgressBar {
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: bold;
+}
+#MergeProgressBar::chunk {
+    background-color: #a259ff;
+    border-radius: 4px;
+}
+#MergeDetailsLabel {
+    color: #666;
+    font-size: 11px;
+}
+#MergeCancelButton {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+#MergeCancelButton:hover {
+    background-color: #c82333;
+}
+#MergeCancelButton:disabled {
+    background-color: #6c757d;
+}
+#MergeCloseSuccessButton {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+#MergeCloseSuccessButton:hover {
+    background-color: #218838;
+}
+#MergeCloseErrorButton {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+#MergeCloseErrorButton:hover {
+    background-color: #c82333;
+}
+
+/* About dialog buttons and labels */
+#TwitterButton {
+    background-color: #1DA1F2;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+#TwitterButton:hover { background-color: #1a8cd8; }
+#GitHubButton {
+    background-color: #333333;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+#GitHubButton:hover { background-color: #555555; }
+#ContributorsButton {
+    background-color: #6C757D;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+#ContributorsButton:hover { background-color: #5a6268; }
+#AboutCloseButton {
+    background-color: #a259ff;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+#AboutCloseButton:hover { background-color: #8a4fd8; }
+#AboutTitle { font-size: 24px; font-weight: bold; color: #a259ff; margin-bottom: 8px; }
+#AboutVersion { font-size: 14px; color: #888888; margin-bottom: 16px; }
+#AboutDesc { font-size: 13px; line-height: 1.4; color: #666666; margin-bottom: 24px; }
+#AboutDevInfo { font-size: 14px; font-weight: 600; color: #333333; margin-bottom: 8px; }
+
+/* Checkpoint dialog moved from inline */
+#CheckpointHeaderLabel {
+    color: #fff;
+    margin-bottom: 8px;
+}
+#CheckpointDescLabel {
+    color: #ccc;
+    font-size: 12px;
+    margin-bottom: 16px;
+}
+#CheckpointScrollArea {
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #2a1e3a;
+}
+#CheckpointScrollViewport {
+    background-color: #2a1e3a;
+    border: none;
+}
+#CheckpointSeparator {
+    background-color: #444;
+    min-height: 1px;
+    max-height: 1px;
+    border: none;
+    margin: 8px 0;
+}
+#CheckpointLabel {
+    color: #a259ff;
+}
+#CheckpointTimeLabel {
+    color: #888;
+    font-size: 11px;
+}
+#CheckpointCmdLabel {
+    color: #fff;
+    font-size: 11px;
+    margin-top: 4px;
+}
+#CheckpointFileLabel {
+    color: #aaa;
+    font-size: 10px;
+}
+#NoCheckpointsLabel {
+    color: #888;
+    font-size: 12px;
+    padding: 40px;
+}

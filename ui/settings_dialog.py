@@ -8,7 +8,7 @@ PROVIDER_DEFAULTS = {
     'Ollama': {
         'endpoint': 'http://localhost:11434/api/generate',
         'api_key': '',
-        'model': '',
+        'model': 'llama3',
     },
     'OpenAI': {
         'endpoint': 'https://api.openai.com/v1/chat/completions',
@@ -150,6 +150,12 @@ class SettingsDialog(QDialog):
             self.llm_model_combo.clear()
             if models:
                 self.llm_model_combo.addItems(models)
+                # Set the current model if it exists in the list
+                current_model = self.llm_model.text().strip()
+                if current_model and current_model in models:
+                    self.llm_model_combo.setCurrentText(current_model)
+                elif 'llama3' in models:
+                    self.llm_model_combo.setCurrentText('llama3')
             else:
                 self.llm_model_combo.addItem("No models found")
             self.label_llm_model.show()

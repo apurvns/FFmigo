@@ -25,7 +25,7 @@ class CheckpointItemWidget(QWidget):
         
         checkpoint_label = QLabel(f"Checkpoint {checkpoint_num}")
         checkpoint_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        checkpoint_label.setStyleSheet("color: #a259ff;")
+        checkpoint_label.setObjectName("CheckpointLabel")
         header_layout.addWidget(checkpoint_label)
         
         header_layout.addStretch()
@@ -36,7 +36,7 @@ class CheckpointItemWidget(QWidget):
             dt = datetime.fromtimestamp(timestamp)
             time_str = dt.strftime("%H:%M:%S")
             time_label = QLabel(time_str)
-            time_label.setStyleSheet("color: #888; font-size: 11px;")
+            time_label.setObjectName("CheckpointTimeLabel")
             header_layout.addWidget(time_label)
         
         layout.addLayout(header_layout)
@@ -45,7 +45,7 @@ class CheckpointItemWidget(QWidget):
         user_cmd = meta.get('user_command', 'Unknown operation')
         cmd_label = QLabel(f"Command: {user_cmd}")
         cmd_label.setWordWrap(True)
-        cmd_label.setStyleSheet("color: #fff; font-size: 11px; margin-top: 4px;")
+        cmd_label.setObjectName("CheckpointCmdLabel")
         layout.addWidget(cmd_label)
         
         # File info
@@ -53,7 +53,7 @@ class CheckpointItemWidget(QWidget):
         if file_size:
             size_mb = file_size / (1024 * 1024)
             file_label = QLabel(f"File: {meta.get('input_file', 'Unknown')} ({size_mb:.1f} MB)")
-            file_label.setStyleSheet("color: #aaa; font-size: 10px;")
+            file_label.setObjectName("CheckpointFileLabel")
             layout.addWidget(file_label)
         
         # Restore button
@@ -67,7 +67,7 @@ class CheckpointItemWidget(QWidget):
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
-        separator.setStyleSheet("background-color: #444; margin: 8px 0;")
+        separator.setObjectName("CheckpointSeparator")
         layout.addWidget(separator)
 
 class CheckpointDialog(QDialog):
@@ -76,9 +76,9 @@ class CheckpointDialog(QDialog):
     def __init__(self, project_dir, parent=None):
         super().__init__(parent)
         self.project_dir = project_dir
+        self.setObjectName("CheckpointDialog")
         self.setWindowTitle("Video Checkpoints")
-        self.setFixedSize(500, 400)
-        self.setModal(True)
+        self.setMinimumWidth(400)
         
         # Set up UI
         layout = QVBoxLayout(self)
@@ -88,13 +88,13 @@ class CheckpointDialog(QDialog):
         # Header
         header = QLabel("Restore to Previous State")
         header.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        header.setStyleSheet("color: #fff; margin-bottom: 8px;")
+        header.setObjectName("CheckpointHeaderLabel")
         layout.addWidget(header)
         
         # Description
         desc = QLabel("Select a checkpoint to restore your video to that previous state. All changes after that point will be lost.")
         desc.setWordWrap(True)
-        desc.setStyleSheet("color: #ccc; font-size: 12px; margin-bottom: 16px;")
+        desc.setObjectName("CheckpointDescLabel")
         layout.addWidget(desc)
         
         # Scrollable checkpoint list
@@ -102,13 +102,9 @@ class CheckpointDialog(QDialog):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.scroll_area.setStyleSheet("""
-            QScrollArea {
-                border: 1px solid #444;
-                border-radius: 8px;
-                background-color: #2a1e3a;
-            }
-        """)
+        self.scroll_area.setObjectName("CheckpointScrollArea")
+        # Ensure viewport can be targeted by QSS
+        self.scroll_area.viewport().setObjectName("CheckpointScrollViewport")
         
         self.checkpoint_widget = QWidget()
         self.checkpoint_layout = QVBoxLayout(self.checkpoint_widget)
@@ -147,7 +143,7 @@ class CheckpointDialog(QDialog):
             # No checkpoints available
             no_checkpoints = QLabel("No checkpoints available.\nCheckpoints are created automatically before each operation.")
             no_checkpoints.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            no_checkpoints.setStyleSheet("color: #888; font-size: 12px; padding: 40px;")
+            no_checkpoints.setObjectName("NoCheckpointsLabel")
             self.checkpoint_layout.addWidget(no_checkpoints)
             return
         
