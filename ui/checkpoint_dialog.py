@@ -56,12 +56,19 @@ class CheckpointItemWidget(QWidget):
             file_label.setObjectName("CheckpointFileLabel")
             layout.addWidget(file_label)
         
-        # Restore button
-        restore_btn = QPushButton("Restore to this point")
+        # Restore button with icon and proper sizing
+        restore_btn = QPushButton()
         restore_btn.setObjectName("RestoreCheckpointButton")
-        restore_btn.setFixedHeight(28)
+        restore_btn.setFixedHeight(32)
+        restore_btn.setFixedWidth(120)  # Fixed width instead of full width
         restore_btn.clicked.connect(self.restore_requested)
-        layout.addWidget(restore_btn)
+        
+        # Set icon and text using dynamic icon system
+        from backend.icon_loader import get_icon
+        restore_btn.setIcon(get_icon("undo", 16))
+        restore_btn.setText("Restore")
+        
+        layout.addWidget(restore_btn, alignment=Qt.AlignmentFlag.AlignRight)
         
         # Add separator line
         separator = QFrame()
@@ -170,4 +177,25 @@ class CheckpointDialog(QDialog):
                 self.checkpoint_restored.emit(checkpoint_num, result) # Pass the restored file path
                 self.close()
             else:
-                QMessageBox.warning(self, "Restore Failed", f"Failed to restore checkpoint: {result}") 
+                QMessageBox.warning(self, "Restore Failed", f"Failed to restore checkpoint: {result}")
+    
+    def showEvent(self, event):
+        """Update button icons when dialog is shown"""
+        super().showEvent(event)
+        # Update all restore button icons to match current theme
+        self._update_button_icons()
+    
+    def _update_button_icons(self):
+        """Update all button icons in the dialog"""
+        from backend.icon_loader import get_icon
+        
+        # Find all restore buttons and update their icons
+        for i in range(self.checkpoint_layout.count()):
+            item = self.checkpoint_layout.itemAt(i)
+            if item and item.widget():
+                widget = item.widget()
+                if hasattr(widget, 'findChildren'):
+                    # Find restore buttons in the widget
+                    restore_buttons = widget.findChildren(QPushButton, "RestoreCheckpointButton")
+                    for btn in restore_buttons:
+                        btn.setIcon(get_icon("undo", 16)) 

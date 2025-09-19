@@ -16,6 +16,8 @@ from backend import llm_client, ffmpeg_runner
 import threading
 from ui.settings_dialog import SettingsDialog
 from backend import config
+from backend.theme import render_stylesheet
+from PyQt6.QtWidgets import QApplication
 import subprocess
 import sys
 from PyQt6.QtMultimediaWidgets import QVideoWidget
@@ -38,9 +40,11 @@ class ProjectItemDelegate(QStyledItemDelegate):
         # Set up the painter
         painter.save()
         
-        # Draw background if selected (use theme color #2d1e3a)
+        # Draw background if selected (use centralized theme color)
         if option.state & QStyle.StateFlag.State_Selected:
-            painter.fillRect(option.rect, QColor("#2d1e3a"))
+            from backend.theme import get_theme_color
+            selected_color = get_theme_color('selected_bg')
+            painter.fillRect(option.rect, QColor(selected_color))
         
         # Calculate text positions
         text_rect = option.rect.adjusted(12, 8, -40, -8)  # Leave space for ⋯ button
@@ -153,18 +157,7 @@ class ProjectSidebar(QWidget):
         # New Project button (right)
         self.new_btn = QPushButton()
         self.new_btn.setObjectName("SidebarNewProjectButton")
-        new_project_icon_path_svg = os.path.join(os.path.dirname(__file__), "resources/icons/new_project.svg")
-        new_project_icon_path_png = os.path.join(os.path.dirname(__file__), "resources/icons/new_project.png")
-        if os.path.exists(new_project_icon_path_svg):
-            self.new_btn.setIcon(QIcon(new_project_icon_path_svg))
-        elif os.path.exists(new_project_icon_path_png):
-            self.new_btn.setIcon(QIcon(new_project_icon_path_png))
-        else:
-            # Fallback SVG icon for new project - matches settings icon design
-            new_project_svg_data = '''<svg width="26" height="26" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" stroke="#a259ff" stroke-width="2" fill="#2d1e3a"/><path d="M14 8v12M8 14h12" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'''
-            new_project_pixmap = QPixmap()
-            new_project_pixmap.loadFromData(bytes(new_project_svg_data, encoding='utf-8'), "SVG")
-            self.new_btn.setIcon(QIcon(new_project_pixmap))
+        # Icon will be set by _update_all_button_icons()
         self.new_btn.setToolTip("New Project")
         self.new_btn.setFixedSize(32, 32)
         self.new_btn.setIconSize(QSize(26, 26))
@@ -176,17 +169,7 @@ class ProjectSidebar(QWidget):
         # Settings button (right)
         self.settings_btn = QPushButton()
         self.settings_btn.setObjectName("SidebarSettingsButton")
-        icon_path_svg = os.path.join(os.path.dirname(__file__), "resources/icons/settings.svg")
-        icon_path_png = os.path.join(os.path.dirname(__file__), "resources/icons/settings.png")
-        if os.path.exists(icon_path_svg):
-            self.settings_btn.setIcon(QIcon(icon_path_svg))
-        elif os.path.exists(icon_path_png):
-            self.settings_btn.setIcon(QIcon(icon_path_png))
-        else:
-            svg_data = '''<svg width="26" height="26" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" stroke="#a259ff" stroke-width="2" fill="#2d1e3a"/><path d="M14 10.5A3.5 3.5 0 1 1 10.5 14 3.5 3.5 0 0 1 14 10.5m0-2A5.5 5.5 0 1 0 19.5 14 5.5 5.5 0 0 0 14 8.5Z" fill="#fff"/><path d="M14 5v2M14 21v2M5 14h2M21 14h2M7.05 7.05l1.42 1.42M19.53 19.53l1.42 1.42M7.05 20.95l1.42-1.42M19.53 8.47l1.42-1.42" stroke="#a259ff" stroke-width="1.5" stroke-linecap="round"/></svg>'''
-            pixmap = QPixmap()
-            pixmap.loadFromData(bytes(svg_data, encoding='utf-8'), "SVG")
-            self.settings_btn.setIcon(QIcon(pixmap))
+        # Icon will be set by _update_all_button_icons()
         self.settings_btn.setToolTip("Settings")
         self.settings_btn.setFixedSize(32, 32)
         self.settings_btn.setIconSize(QSize(26, 26))
@@ -195,21 +178,23 @@ class ProjectSidebar(QWidget):
         self.settings_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         top_row.addWidget(self.settings_btn)
         
+        # Theme toggle button (right, placed before Help)
+        self.theme_btn = QPushButton()
+        # Reuse existing style for sidebar buttons without editing QSS
+        self.theme_btn.setObjectName("SidebarSettingsButton")
+        # Icon will be set by _update_all_button_icons()
+        self.theme_btn.setToolTip("Toggle Theme")
+        self.theme_btn.setFixedSize(32, 32)
+        self.theme_btn.setIconSize(QSize(26, 26))
+        self.theme_btn.clicked.connect(self._toggle_theme)
+        self.theme_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.theme_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        top_row.addWidget(self.theme_btn)
+
         # Help/Info button (right)
         self.help_btn = QPushButton()
         self.help_btn.setObjectName("SidebarHelpButton")
-        help_icon_path_svg = os.path.join(os.path.dirname(__file__), "resources/icons/help.svg")
-        help_icon_path_png = os.path.join(os.path.dirname(__file__), "resources/icons/help.png")
-        if os.path.exists(help_icon_path_svg):
-            self.help_btn.setIcon(QIcon(help_icon_path_svg))
-        elif os.path.exists(help_icon_path_png):
-            self.help_btn.setIcon(QIcon(help_icon_path_png))
-        else:
-            # Fallback SVG icon for help - matches settings icon design
-            help_svg_data = '''<svg width="26" height="26" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" stroke="#a259ff" stroke-width="2" fill="#2d1e3a"/><path d="M14 8.5a5.5 5.5 0 0 1 5.5 5.5c0 3-2.5 4.5-2.5 4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="19.5" r="1" fill="#fff"/></svg>'''
-            help_pixmap = QPixmap()
-            help_pixmap.loadFromData(bytes(help_svg_data, encoding='utf-8'), "SVG")
-            self.help_btn.setIcon(QIcon(help_pixmap))
+        # Icon will be set by _update_all_button_icons()
         self.help_btn.setToolTip("About FFMigo")
         self.help_btn.setFixedSize(32, 32)
         self.help_btn.setIconSize(QSize(26, 26))
@@ -248,6 +233,97 @@ class ProjectSidebar(QWidget):
         # bottom_layout.addStretch(1)
         # self.vbox.addWidget(bottom_widget, alignment=Qt.AlignmentFlag.AlignBottom)
         self.setMinimumHeight(600)  # Ensure sidebar is tall enough
+        
+        # Initialize button icons
+        self._initialize_sidebar_button_icons()
+
+    def _initialize_sidebar_button_icons(self):
+        """Initialize sidebar button icons using dynamic icon loading"""
+        from backend.icon_loader import get_icon
+        
+        # Set icons for all sidebar buttons
+        if hasattr(self, 'new_btn'):
+            self.new_btn.setIcon(get_icon("new_project", 26))
+        if hasattr(self, 'settings_btn'):
+            self.settings_btn.setIcon(get_icon("settings", 26))
+        if hasattr(self, 'help_btn'):
+            self.help_btn.setIcon(get_icon("help", 26))
+        if hasattr(self, 'theme_btn'):
+            self._update_theme_button_icon()
+
+    def _update_theme_button_icon(self):
+        # Get theme from parent MainWindow
+        main_window = self.parent()
+        while main_window and not isinstance(main_window, MainWindow):
+            main_window = main_window.parent()
+        
+        if main_window and hasattr(main_window, '_current_theme'):
+            theme = main_window._current_theme()
+        else:
+            theme = 'dark'  # fallback
+            
+        # Use sun icon when in dark mode (indicates switch to light), moon in light mode
+        from backend.icon_loader import get_icon
+        if theme == 'dark':
+            # Sun icon - indicates switch to light theme
+            self.theme_btn.setIcon(get_icon("sun", 26))
+        else:
+            # Moon icon - indicates switch to dark theme
+            self.theme_btn.setIcon(get_icon("moon", 26))
+
+
+    def _toggle_theme(self):
+        # Flip theme in config
+        cfg = config.get_config()
+        current = cfg.get('theme', 'dark')
+        new_theme = 'light' if current == 'dark' else 'dark'
+        cfg['theme'] = new_theme
+        print(f"DEBUG: Switching from {current} to {new_theme}")
+        try:
+            config.save_config(cfg)
+            print(f"DEBUG: Config saved successfully")
+        except Exception as e:
+            print(f"Warning: could not save theme setting: {e}")
+
+        # Reapply stylesheet using backend.theme renderer
+        try:
+            base_dir = os.path.dirname(os.path.dirname(__file__))  # project root
+            qss_path = os.path.join(base_dir, 'style.qss')
+            print(f"DEBUG: Loading QSS from {qss_path}")
+            with open(qss_path, 'r', encoding='utf-8') as f:
+                qss_text = f.read()
+            print(f"DEBUG: QSS loaded, length: {len(qss_text)}")
+            
+            # Apply theme to stylesheet
+            rendered = render_stylesheet(qss_text, new_theme)
+            
+            app = QApplication.instance()
+            if app is not None:
+                # Clear current stylesheet first to force refresh
+                app.setStyleSheet("")
+                app.setStyleSheet(rendered)
+                
+                # Clear icon cache and update all button icons
+                from backend.icon_loader import clear_icon_cache
+                clear_icon_cache()
+                app.processEvents()
+                print(f"DEBUG: Stylesheet applied successfully")
+            else:
+                print("DEBUG: No QApplication instance found!")
+        except Exception as e:
+            print(f"Warning: could not reapply stylesheet: {e}")
+            import traceback
+            traceback.print_exc()
+
+        # Update button icon to reflect new theme
+        self._update_theme_button_icon()
+        # Update all button icons to match new theme
+        main_window = self.parent()
+        while main_window and not isinstance(main_window, MainWindow):
+            main_window = main_window.parent()
+        
+        if main_window and hasattr(main_window, '_update_all_button_icons'):
+            main_window._update_all_button_icons()
 
     def set_projects(self, projects, selected=None):
         self.project_list.clear()
@@ -487,14 +563,7 @@ class MainWindow(QMainWindow):
         self.edit_project_btn.clicked.connect(self.edit_project_name)
         self.edit_project_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         
-        # Set edit icon using inline SVG (like chat buttons)
-        edit_svg_data = '''<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>'''
-        edit_pixmap = QPixmap()
-        edit_pixmap.loadFromData(bytes(edit_svg_data, encoding='utf-8'), "SVG")
-        self.edit_project_btn.setIcon(QIcon(edit_pixmap))
+        # Icon will be set by _update_all_button_icons()
         
         self.project_header_layout.addWidget(self.edit_project_btn)
         
@@ -510,16 +579,7 @@ class MainWindow(QMainWindow):
         self.delete_project_btn.clicked.connect(self.delete_current_project)
         self.delete_project_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         
-        # Set delete icon using inline SVG (like chat buttons)
-        delete_svg_data = '''<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M3 6h18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="10" y1="11" x2="10" y2="17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="14" y1="11" x2="14" y2="17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>'''
-        delete_pixmap = QPixmap()
-        delete_pixmap.loadFromData(bytes(delete_svg_data, encoding='utf-8'), "SVG")
-        self.delete_project_btn.setIcon(QIcon(delete_pixmap))
+        # Icon will be set by _update_all_button_icons()
         
         self.project_header_layout.addWidget(self.delete_project_btn)
         
@@ -564,7 +624,7 @@ class MainWindow(QMainWindow):
         # Play/Pause icon button
         self.play_pause_btn = QPushButton()
         self.play_pause_btn.setObjectName("PlayPauseButton")
-        self.play_pause_btn.setIcon(QIcon.fromTheme("media-playback-start"))
+        # Icon will be set by _update_all_button_icons()
         self.play_pause_btn.setFixedSize(40, 40)
         self.play_pause_btn.clicked.connect(self.toggle_play_pause)
         self.play_pause_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -594,7 +654,7 @@ class MainWindow(QMainWindow):
         # Fullscreen button
         self.fullscreen_btn = QPushButton()
         self.fullscreen_btn.setObjectName("FullscreenButton")
-        self.fullscreen_btn.setIcon(QIcon.fromTheme("view-fullscreen"))
+        # Icon will be set by _update_all_button_icons()
         self.fullscreen_btn.setFixedSize(36, 36)
         self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
         self.fullscreen_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -690,11 +750,7 @@ class MainWindow(QMainWindow):
         self.checkpoint_btn.clicked.connect(self.open_checkpoints)
         self.checkpoint_btn.setEnabled(False)
         self.checkpoint_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        # Set checkpoint icon
-        checkpoint_svg_data = '''<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" stroke="white" stroke-width="2"/></svg>'''
-        checkpoint_pixmap = QPixmap()
-        checkpoint_pixmap.loadFromData(bytes(checkpoint_svg_data, encoding='utf-8'), "SVG")
-        self.checkpoint_btn.setIcon(QIcon(checkpoint_pixmap))
+        # Icon will be set by _update_all_button_icons()
         self.checkpoint_btn.setIconSize(QSize(20, 20))
         self.action_buttons_layout.addWidget(self.checkpoint_btn)
         
@@ -706,11 +762,7 @@ class MainWindow(QMainWindow):
         self.undo_btn.clicked.connect(self.undo_last_command)
         self.undo_btn.setEnabled(False)
         self.undo_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        # Set undo icon
-        undo_svg_data = '''<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 7v6h6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'''
-        undo_pixmap = QPixmap()
-        undo_pixmap.loadFromData(bytes(undo_svg_data, encoding='utf-8'), "SVG")
-        self.undo_btn.setIcon(QIcon(undo_pixmap))
+        # Icon will be set by _update_all_button_icons()
         self.undo_btn.setIconSize(QSize(20, 20))
         self.action_buttons_layout.addWidget(self.undo_btn)
         
@@ -738,11 +790,7 @@ class MainWindow(QMainWindow):
         self.open_dir_btn.clicked.connect(self.open_project_directory)
         self.open_dir_btn.setEnabled(False)
         self.open_dir_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        # Set folder icon
-        folder_svg_data = '''<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'''
-        folder_pixmap = QPixmap()
-        folder_pixmap.loadFromData(bytes(folder_svg_data, encoding='utf-8'), "SVG")
-        self.open_dir_btn.setIcon(QIcon(folder_pixmap))
+        # Icon will be set by _update_all_button_icons()
         self.open_dir_btn.setIconSize(QSize(20, 20))
         self.action_buttons_layout.addWidget(self.open_dir_btn)
         
@@ -837,6 +885,63 @@ class MainWindow(QMainWindow):
         
         self.showMaximized()  # Start maximized, preferred for desktop apps
 
+    def _update_all_button_icons(self):
+        """Update all button icons to match current theme"""
+        from backend.icon_loader import get_icon
+        
+        # Play/Pause button
+        if hasattr(self, 'play_pause_btn'):
+            # Check if media_player exists and is playing
+            is_playing = False
+            if hasattr(self, 'media_player') and self.media_player:
+                is_playing = self.media_player.playbackState() == QMediaPlayer.PlaybackState.PlayingState
+            
+            icon_name = "pause" if is_playing else "play"
+            self.play_pause_btn.setIcon(get_icon(icon_name))
+        
+        # Fullscreen button
+        if hasattr(self, 'fullscreen_btn'):
+            self.fullscreen_btn.setIcon(get_icon("fullscreen"))
+        
+        # Action buttons (checkpoint, undo, export, folder)
+        if hasattr(self, 'checkpoint_btn'):
+            self.checkpoint_btn.setIcon(get_icon("checkpoint"))
+        
+        if hasattr(self, 'undo_btn'):
+            self.undo_btn.setIcon(get_icon("undo"))
+        
+        if hasattr(self, 'export_btn'):
+            self.export_btn.setIcon(get_icon("export"))
+        
+        if hasattr(self, 'open_dir_btn'):
+            self.open_dir_btn.setIcon(get_icon("folder"))
+        
+        # Project header buttons (edit, delete)
+        if hasattr(self, 'edit_project_btn'):
+            self.edit_project_btn.setIcon(get_icon("edit"))
+        
+        if hasattr(self, 'delete_project_btn'):
+            self.delete_project_btn.setIcon(get_icon("delete"))
+        
+        # Sidebar buttons (new project, settings, help)
+        if hasattr(self, 'sidebar'):
+            if hasattr(self.sidebar, 'new_btn'):
+                self.sidebar.new_btn.setIcon(get_icon("new_project", 26))
+            if hasattr(self.sidebar, 'settings_btn'):
+                self.sidebar.settings_btn.setIcon(get_icon("settings", 26))
+            if hasattr(self.sidebar, 'help_btn'):
+                self.sidebar.help_btn.setIcon(get_icon("help", 26))
+            if hasattr(self.sidebar, 'theme_btn'):
+                self.sidebar._update_theme_button_icon()
+
+    def _current_theme(self):
+        """Get current theme from config"""
+        try:
+            cfg = config.get_config()
+            return cfg.get('theme', 'dark')
+        except Exception:
+            return 'dark'
+
     def update_window_title(self):
         """Update the window title and heading based on current project"""
         if self.project_dir:
@@ -846,12 +951,15 @@ class MainWindow(QMainWindow):
             # Show edit and delete buttons when project is loaded
             self.edit_project_btn.show()
             self.delete_project_btn.show()
+            # Update button icons to match theme
+            self._update_all_button_icons()
         else:
             self.setWindowTitle("FFMigo Video Editor")
             self.project_name_label.setText("FFMigo Video Editor")
             # Hide edit and delete buttons when no project is loaded
             self.edit_project_btn.hide()
             self.delete_project_btn.hide()
+        
 
     def on_files_dropped(self, file_paths):
         """Handle multiple video files being dropped or selected"""
@@ -1358,10 +1466,8 @@ class MainWindow(QMainWindow):
             self.toggle_play_pause()
 
     def update_play_pause_icon(self, state):
-        if state == QMediaPlayer.PlaybackState.PlayingState:
-            self.play_pause_btn.setIcon(QIcon.fromTheme("media-playback-pause"))
-        else:
-            self.play_pause_btn.setIcon(QIcon.fromTheme("media-playback-start"))
+        # Update the play/pause icon using the theming system
+        self._update_all_button_icons()
 
     def update_position(self, position):
         self.seek_slider.blockSignals(True)

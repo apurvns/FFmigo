@@ -49,15 +49,6 @@ def validate_ffmpeg_command(cmd):
     if output_count > 1:
         return False, 'Command cannot have multiple output files'
     
-    # Block attempts to overwrite input files
-    if re.search(r'output\.\w+.*input', cmd) or re.search(r'input.*output\.\w+', cmd):
-        # Check if output filename matches input filename pattern
-        input_match = re.search(input_pattern, cmd)
-        if input_match:
-            input_file = input_match.group()
-            if input_file.replace('input', 'output') in cmd:
-                return False, 'Command cannot overwrite input files'
-    
     
     return True, ''
 

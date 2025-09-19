@@ -826,7 +826,7 @@ QProgressDialog QPushButton:hover {
     font-size: 12px;
     font-weight: 600;
 }
-#GitHubButton:hover { background-color: #555555; }
+#GitHubButton:hover { background-color: #a259ff; }
 #ContributorsButton {
     background-color: #6C757D;
     color: white;
@@ -836,7 +836,7 @@ QProgressDialog QPushButton:hover {
     font-size: 12px;
     font-weight: 600;
 }
-#ContributorsButton:hover { background-color: #5a6268; }
+#ContributorsButton:hover { background-color: #a259ff; }
 #AboutCloseButton {
     background-color: #a259ff;
     color: white;
@@ -846,7 +846,7 @@ QProgressDialog QPushButton:hover {
     font-size: 13px;
     font-weight: 600;
 }
-#AboutCloseButton:hover { background-color: #8a4fd8; }
+#AboutCloseButton:hover { background-color: #a259ff; }
 #AboutTitle { font-size: 24px; font-weight: bold; color: #a259ff; margin-bottom: 8px; }
 #AboutVersion { font-size: 14px; color: #888888; margin-bottom: 16px; }
 #AboutDesc { font-size: 13px; line-height: 1.4; color: #666666; margin-bottom: 24px; }

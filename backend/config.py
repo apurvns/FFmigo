@@ -13,11 +13,14 @@ def get_config():
             'llm_model': 'llama3',
             'ffmpeg_path': 'ffmpeg',
             'export_dir': os.path.expanduser('~'),
+            'theme': 'dark',
         }
     with open(path, 'r') as f:
         config = json.load(f)
         if 'provider' not in config:
             config['provider'] = 'Ollama'
+        if 'theme' not in config:
+            config['theme'] = 'dark'
         return config
 
 def save_config(settings):

@@ -128,3 +128,6 @@ Desktop.ini
 *.m4v
 *.3gp
 *.ogv 
+
+
+.DS_Store
