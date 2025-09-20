@@ -129,7 +129,6 @@ QSplitter::handle:hover {
 #ProjectNameLabel {
     font-size: 32px;
     font-weight: 800;
-    margin-bottom: 12px;
     letter-spacing: 0.5px;
     color: #e6eaf3;
 }
