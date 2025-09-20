@@ -142,8 +142,17 @@ class ProjectSidebar(QWidget):
         self.app_logo_label.setScaledContents(True)
         self.app_logo_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         
-        # Load app logo
-        logo_path = os.path.join(os.path.dirname(__file__), "resources/icons/app_in_logo.png")
+        # Load app logo based on current theme
+        from backend import config
+        cfg = config.get_config()
+        current_theme = cfg.get('theme', 'dark')
+        
+        if current_theme == 'light':
+            logo_filename = "app_in_logo_light.png"
+        else:
+            logo_filename = "app_in_logo.png"
+            
+        logo_path = os.path.join(os.path.dirname(__file__), "resources/icons", logo_filename)
         if os.path.exists(logo_path):
             logo_pixmap = QPixmap(logo_path)
             if not logo_pixmap.isNull():
@@ -271,6 +280,23 @@ class ProjectSidebar(QWidget):
             # Moon icon - indicates switch to dark theme
             self.theme_btn.setIcon(get_icon("moon", 26))
 
+    def _update_app_logo(self):
+        """Update app logo based on current theme"""
+        from backend import config
+        cfg = config.get_config()
+        current_theme = cfg.get('theme', 'dark')
+        
+        if current_theme == 'light':
+            logo_filename = "app_in_logo_light.png"
+        else:
+            logo_filename = "app_in_logo.png"
+            
+        logo_path = os.path.join(os.path.dirname(__file__), "resources/icons", logo_filename)
+        if os.path.exists(logo_path):
+            logo_pixmap = QPixmap(logo_path)
+            if not logo_pixmap.isNull():
+                self.app_logo_label.setPixmap(logo_pixmap.scaled(120, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+
 
     def _toggle_theme(self):
         # Flip theme in config
@@ -278,10 +304,8 @@ class ProjectSidebar(QWidget):
         current = cfg.get('theme', 'dark')
         new_theme = 'light' if current == 'dark' else 'dark'
         cfg['theme'] = new_theme
-        print(f"DEBUG: Switching from {current} to {new_theme}")
         try:
             config.save_config(cfg)
-            print(f"DEBUG: Config saved successfully")
         except Exception as e:
             print(f"Warning: could not save theme setting: {e}")
 
@@ -289,10 +313,8 @@ class ProjectSidebar(QWidget):
         try:
             base_dir = os.path.dirname(os.path.dirname(__file__))  # project root
             qss_path = os.path.join(base_dir, 'style.qss')
-            print(f"DEBUG: Loading QSS from {qss_path}")
             with open(qss_path, 'r', encoding='utf-8') as f:
                 qss_text = f.read()
-            print(f"DEBUG: QSS loaded, length: {len(qss_text)}")
             
             # Apply theme to stylesheet
             rendered = render_stylesheet(qss_text, new_theme)
@@ -307,9 +329,6 @@ class ProjectSidebar(QWidget):
                 from backend.icon_loader import clear_icon_cache
                 clear_icon_cache()
                 app.processEvents()
-                print(f"DEBUG: Stylesheet applied successfully")
-            else:
-                print("DEBUG: No QApplication instance found!")
         except Exception as e:
             print(f"Warning: could not reapply stylesheet: {e}")
             import traceback
@@ -317,6 +336,8 @@ class ProjectSidebar(QWidget):
 
         # Update button icon to reflect new theme
         self._update_theme_button_icon()
+        # Update app logo to reflect new theme
+        self._update_app_logo()
         # Update all button icons to match new theme
         main_window = self.parent()
         while main_window and not isinstance(main_window, MainWindow):
@@ -475,15 +496,11 @@ class YouTubeDownloader(QThread):
             # Ensure percentage is within valid range
             percent_val = max(0, min(100, percent_val))
             
-            # Add stream info to debug output
-            stream_info = f" (stream: {d.get('info_dict', {}).get('format_id', 'unknown')})" if 'info_dict' in d else ""
-            print(f"[DEBUG] YouTube download progress: {percent_val}%{stream_info}")
             self.progress_signal.emit(percent_val)
             
         elif d['status'] == 'finished':
             if not self._finished:  # Prevent multiple finish signals
                 self._finished = True
-                print(f"[DEBUG] YouTube download finished: {d.get('filename', 'unknown')}")
                 self.finished_signal.emit(d['filename'])
 class MainWindow(QMainWindow):
     process_result_ready = pyqtSignal(dict)
@@ -1085,9 +1102,6 @@ class MainWindow(QMainWindow):
         #self.youtube_download_btn.setEnabled(True)
         self.youtube_input.setEnabled(True)
         
-        print(f"[DEBUG] Download finished, file_path: {file_path}")
-        print(f"[DEBUG] File exists: {os.path.exists(file_path)}")
-        
         # Check if file actually exists
         if not os.path.exists(file_path):
             print(f"[ERROR] Downloaded file does not exist: {file_path}")
@@ -1104,7 +1118,6 @@ class MainWindow(QMainWindow):
         
         # Get the actual file extension from the downloaded file
         actual_ext = os.path.splitext(file_path)[1]
-        print(f"[DEBUG] Actual file extension: {actual_ext}")
         
         # Keep the original extension to preserve video+audio
         # Don't force rename to .mp4 if it's actually a .webm file
@@ -1170,8 +1183,6 @@ class MainWindow(QMainWindow):
             has_video = len(video_streams) > 0
             has_audio = len(audio_streams) > 0
             
-            print(f"[DEBUG] Video validation - has_video: {has_video}, has_audio: {has_audio}")
-            print(f"[DEBUG] Video streams: {len(video_streams)}, Audio streams: {len(audio_streams)}")
             
             if has_video and not has_audio:
                 print("[WARNING] Video has no audio stream")
@@ -1400,23 +1411,14 @@ class MainWindow(QMainWindow):
     def on_checkpoint_restored(self, checkpoint_num, restored_file_path):
         """Handle checkpoint restoration"""
         print(f"[INFO] Checkpoint {checkpoint_num} restored to {restored_file_path}")
-        print(f"[DEBUG] Before restoration - input_path: {self.input_path}")
-        print(f"[DEBUG] Before restoration - input_ext: {self.input_ext}")
-        print(f"[DEBUG] Restored file exists: {os.path.exists(restored_file_path)}")
-        print(f"[DEBUG] Restored file size: {os.path.getsize(restored_file_path) if os.path.exists(restored_file_path) else 'N/A'}")
         
         # Use the restored file path directly
         self.input_path = restored_file_path
         self.input_ext = os.path.splitext(restored_file_path)[1][1:]
         
-        print(f"[DEBUG] After restoration - input_path: {self.input_path}")
-        print(f"[DEBUG] After restoration - input_ext: {self.input_ext}")
-        print(f"[DEBUG] File exists: {os.path.exists(restored_file_path)}")
-        
         # Force stop the current video player before loading the new one
         try:
             self.media_player.stop()
-            print(f"[DEBUG] Stopped current media player")
         except:
             pass
         
@@ -1429,9 +1431,6 @@ class MainWindow(QMainWindow):
         # Clear chat log and add restoration message
         self.chat_log.clear()
         self.append_chat_log("System", f"Restored to Checkpoint {checkpoint_num}. Ready for new commands.")
-        
-        print(f"[DEBUG] Restored to file: {restored_file_path}")
-        print(f"[DEBUG] Video player should now show the restored checkpoint")
 
     def save_settings(self, settings):
         self.app_config = settings
@@ -1439,7 +1438,6 @@ class MainWindow(QMainWindow):
         self.append_chat_log("System", "Settings updated.")
 
     def update_processed_video(self, video_path):
-        print(f'[DEBUG] Entered update_processed_video({video_path})')
         try:
             # Update the video player with the new processed video
             self.load_video(video_path)
@@ -1448,8 +1446,6 @@ class MainWindow(QMainWindow):
             self.open_dir_btn.setEnabled(True)  # Keep open directory enabled after processing
             self.checkpoint_btn.setEnabled(True)  # Enable checkpoints after processing
             self.processed_path_file = video_path  # Update for export functionality
-            print(f'[DEBUG] update_processed_video: loaded {video_path} and updated controls')
-            print(f'[DEBUG] update_processed_video: export button enabled: {self.export_btn.isEnabled()}')
         except Exception as e:
             print(f'[ERROR] Exception in update_processed_video: {e}')
             import traceback; traceback.print_exc()
@@ -1602,7 +1598,6 @@ class MainWindow(QMainWindow):
         try:
             import os
             input_filename = os.path.basename(self.input_path)
-            print(f"[DEBUG] Using input file for FFmpeg command: {input_filename}")
             
             if hasattr(self, '_last_failed_command') and hasattr(self, '_last_error') and retry_count > 0:
                 # This is a retry attempt - use retry function
@@ -1704,7 +1699,6 @@ class MainWindow(QMainWindow):
                 else:
                     output_ext = self.input_ext  # fallback to input extension
                 output_file = os.path.join(self.project_dir, f'output.{output_ext}')
-                print(f"[DEBUG] Looking for output file: {output_file}")
                 if not os.path.exists(output_file):
                     print(f"[ERROR] Output file not found: {output_file}")
                     emit_data['error'] = f"Expected output file {output_file} was not created. Check your command and try again."
@@ -1725,7 +1719,6 @@ class MainWindow(QMainWindow):
                     emit_data['error'] = f"Could not find unique filename after {max_idx} tries."
                     self.process_result_ready.emit(emit_data)
                     return
-                print(f"[DEBUG] Moving {output_file} to {new_input_file}")
                 shutil.move(output_file, new_input_file)
                 thumb_path = os.path.join(self.project_dir, 'thumb.jpg')
                 try:
@@ -1742,7 +1735,6 @@ class MainWindow(QMainWindow):
         self.process_result_ready.emit(emit_data)
 
     def on_process_result_ready(self, data):
-        print('[DEBUG] Entered on_process_result_ready')
         try:
             user_text = data.get('user_text', None)
             ffmpeg_cmd = data.get('ffmpeg_cmd', None)
@@ -1770,11 +1762,9 @@ class MainWindow(QMainWindow):
                 else:
                     self.append_chat_log("Error", error)
                 self.enable_chat_input()
-                print('[DEBUG] on_process_result_ready: error branch, returning')
                 return
             if ffmpeg_result and ffmpeg_result.get('success'):
                 if new_input_file and new_input_ext:
-                    print(f'[DEBUG] on_process_result_ready: calling update_processed_video({new_input_file})')
                     self.input_path = new_input_file
                     self.input_ext = new_input_ext
                     self.update_processed_video(self.input_path)
@@ -1787,7 +1777,6 @@ class MainWindow(QMainWindow):
             else:
                 self.append_chat_log("Error", f"FFmpeg error: {ffmpeg_result.get('stderr') if ffmpeg_result else 'Unknown error'}")
             self.enable_chat_input()
-            print('[DEBUG] Exiting on_process_result_ready')
         except Exception as e:
             print(f'[ERROR] Exception in on_process_result_ready: {e}')
             import traceback; traceback.print_exc()
@@ -2113,8 +2102,6 @@ class MainWindow(QMainWindow):
         import subprocess
         import re
         
-        print(f"[DEBUG] load_project: loading project from {proj_dir}")
-        
         # Use shell command to find the latest input file
         try:
             files = os.listdir(proj_dir)
@@ -2132,8 +2119,6 @@ class MainWindow(QMainWindow):
             if not latest_input_file:    
                 QMessageBox.warning(self, "Error", "No input video found in project.")
                 return
-
-            print(f"[DEBUG] load_project: found latest file: {latest_input_file}")
 
         except Exception as e:
             print(f"[ERROR] load_project: error finding latest file: {e}")
@@ -2165,14 +2150,11 @@ class MainWindow(QMainWindow):
         
         # Enable export button if this is an edited video (has numbered files)
         has_edited_files = latest_input_file.startswith('input_')
-        print(f"[DEBUG] load_project: has_edited_files: {has_edited_files}")
         self.export_btn.setEnabled(True)  # Always enable export button
         
         # Enable undo button if there are checkpoints available
         checkpoints = project_manager.list_checkpoints(self.project_dir)
         self.undo_btn.setEnabled(len(checkpoints) > 0)
-        
-        print(f"[DEBUG] load_project: export button state: {self.export_btn.isEnabled()}")
         
         # Clear chat and show message
         self.chat_log.clear()
@@ -2180,26 +2162,18 @@ class MainWindow(QMainWindow):
         self.update_window_title()
 
     def load_video(self, video_path):
-        print(f'[DEBUG] load_video: called with {video_path}')
-        print(f'[DEBUG] load_video: file exists = {os.path.exists(video_path)}')
-        print(f'[DEBUG] load_video: file size = {os.path.getsize(video_path) if os.path.exists(video_path) else "N/A"}')
         try:
             url = QUrl.fromLocalFile(video_path)
-            print('[DEBUG] load_video: created QUrl')
             # Stop and delete the media player and audio output
             try:
                 self.media_player.stop()
-                print('[DEBUG] load_video: stopped old media_player')
                 self.media_player.setSource(QUrl())
-                print('[DEBUG] load_video: cleared old source')
                 del self.media_player
                 del self.audio_output
-                print('[DEBUG] load_video: deleted old media_player and audio_output')
             except Exception as e:
-                print(f'[DEBUG] load_video: exception deleting old player: {e}')
+                pass
             from PyQt6.QtCore import QTimer
             QTimer.singleShot(0, lambda: self._create_and_load_player(video_path))
-            print('[DEBUG] load_video: scheduled _create_and_load_player')
         except Exception as e:
             print(f'[ERROR] Exception in load_video: {e}')
             import traceback; traceback.print_exc()
@@ -2207,34 +2181,23 @@ class MainWindow(QMainWindow):
             return
 
     def _create_and_load_player(self, video_path):
-        print(f'[DEBUG] _create_and_load_player: called with {video_path}')
-        print(f'[DEBUG] _create_and_load_player: file exists = {os.path.exists(video_path)}')
         try:
             from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
             url = QUrl.fromLocalFile(video_path)
-            print(f'[DEBUG] _create_and_load_player: created QUrl from {video_path}')
             self.media_player = QMediaPlayer()
-            print('[DEBUG] _create_and_load_player: created new QMediaPlayer')
             self.audio_output = QAudioOutput()
-            print('[DEBUG] _create_and_load_player: created new QAudioOutput')
             self.media_player.setVideoOutput(self.video_widget)
-            print('[DEBUG] _create_and_load_player: set video output')
             self.media_player.setAudioOutput(self.audio_output)
-            print('[DEBUG] _create_and_load_player: set audio output')
             self.media_player.playbackStateChanged.connect(self.update_play_pause_icon)
             self.media_player.positionChanged.connect(self.update_position)
             self.media_player.durationChanged.connect(self.update_duration)
             self.media_player.errorOccurred.connect(self.handle_media_error)
-            print('[DEBUG] _create_and_load_player: connected signals')
             self.media_player.setSource(url)
-            print(f'[DEBUG] _create_and_load_player: set new source to {video_path}')
             self.media_player.pause()
-            print('[DEBUG] _create_and_load_player: paused player')
             self.processed_path_file = video_path
             self.seek_slider.setValue(0)
             self.seek_slider.setRange(0, 0)
             self.time_label.setText("00:00 / 00:00")
-            print('[DEBUG] _create_and_load_player: finished')
         except Exception as e:
             print(f'[ERROR] Exception in _create_and_load_player: {e}')
             import traceback; traceback.print_exc()
