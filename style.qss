@@ -1,4 +1,3 @@
-/* Modern T3.chat-inspired dark theme */
 QWidget {
     background: #18141d;
     color: #e6eaf3;

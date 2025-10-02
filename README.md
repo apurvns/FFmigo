@@ -84,25 +84,7 @@ python main.py
 
 ---
 
-## Logo
-
-The application includes a default logo located at `ui/resources/icons/app_logo.svg`. To customize the logo:
-
-1. **Replace the SVG logo**: Replace `ui/resources/icons/app_logo.svg` with your own SVG logo
-2. **Or replace the PNG logo**: Replace `ui/resources/icons/app_logo.png` with your own PNG logo
-3. **Recommended logo specifications**:
-   - **SVG**: Vector format, 64x64 viewBox or larger
-   - **PNG**: Square format, 64x64 pixels or larger (128x128, 256x256 recommended)
-   - **Background**: Transparent background for best results
-   - **Colors**: Should work well with the app's dark theme
-
-The logo will appear in the taskbar, window title bar, and application icon.
-
----
-
 ## License
-MIT
+Apache 2.0
 
-# select python 3.10+ from cursor 
-Open Command Palette (Cmd+Shift+P)
-Search: Python: Select Interpreter
+# use python 3.10+  
