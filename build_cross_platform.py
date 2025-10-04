@@ -119,6 +119,8 @@ def build_for_platform():
             "--add-data=ui/resources/icons:ui/resources/icons",
             "--add-data=backend:backend",
             "--add-data=ui:ui",
+            "--hidden-import=yt_dlp",
+            "--collect-all=yt_dlp",
             "--osx-bundle-identifier=com.ffmigo.app",
             "--target-architecture=arm64",
             "main.py"

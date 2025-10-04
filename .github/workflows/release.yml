@@ -152,6 +152,8 @@ jobs:
       run: |
         rm -rf build dist FFMigo.spec
         echo "Building macOS application..."
+        echo "Python location: $(which python)"
+        echo "Python version: $(python --version)"
         python build_cross_platform.py
         echo "Build completed successfully!"
         echo "=== Final check before upload ==="
