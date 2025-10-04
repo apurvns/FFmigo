@@ -1,21 +1,24 @@
 import os
 from PyQt6.QtGui import QIcon
+from .resource_utils import resource_path
 
 def get_app_icon_paths(base_dir=None):
     """
     Get the application icon paths (SVG and PNG).
     
     Args:
-        base_dir: Base directory path. If None, uses the directory containing this file.
+        base_dir: Base directory path. If None, uses resource_path for bundled apps.
     
     Returns:
         tuple: (svg_path, png_path)
     """
     if base_dir is None:
-        base_dir = os.path.dirname(os.path.dirname(__file__))  # Go up one level from backend/
-    
-    svg_path = os.path.join(base_dir, 'ui', 'resources', 'icons', 'app_logo.svg')
-    png_path = os.path.join(base_dir, 'ui', 'resources', 'icons', 'app_logo.png')
+        # Use resource_path for bundled applications
+        svg_path = resource_path(os.path.join('ui', 'resources', 'icons', 'app_logo.svg'))
+        png_path = resource_path(os.path.join('ui', 'resources', 'icons', 'app_logo.png'))
+    else:
+        svg_path = os.path.join(base_dir, 'ui', 'resources', 'icons', 'app_logo.svg')
+        png_path = os.path.join(base_dir, 'ui', 'resources', 'icons', 'app_logo.png')
     
     return svg_path, png_path
 

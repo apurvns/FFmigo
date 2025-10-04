@@ -29,7 +29,7 @@ exe = EXE(
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
-    target_arch=None,
+    target_arch='arm64',
     codesign_identity=None,
     entitlements_file=None,
     icon=['ui/resources/icons/app_logo.png'],
@@ -47,5 +47,5 @@ app = BUNDLE(
     coll,
     name='FFMigo.app',
     icon='ui/resources/icons/app_logo.png',
-    bundle_identifier=None,
+    bundle_identifier='com.ffmigo.app',
 )

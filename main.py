@@ -6,6 +6,7 @@ import os
 from backend.icon_utils import load_app_icon
 from backend.config import get_config
 from backend.theme import render_stylesheet
+from backend.resource_utils import get_style_path
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -20,8 +21,7 @@ if __name__ == "__main__":
     
     # Load and apply global stylesheet with theming
     try:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        qss_path = os.path.join(base_dir, 'style.qss')
+        qss_path = get_style_path()
         with open(qss_path, "r") as f:
             qss_text = f.read()
         theme = get_config().get('theme', 'dark')

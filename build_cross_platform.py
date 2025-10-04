@@ -8,6 +8,84 @@ import subprocess
 import sys
 import os
 import platform
+import shutil
+
+def create_macos_app_bundle():
+    """Convert the PyInstaller folder to a proper .app bundle"""
+    print("Converting folder to .app bundle...")
+    
+    dist_dir = "dist"
+    app_name = "FFMigo.app"
+    folder_name = "FFMigo"
+    
+    # Remove existing .app if it exists
+    app_path = os.path.join(dist_dir, app_name)
+    if os.path.exists(app_path):
+        shutil.rmtree(app_path)
+    
+    # Create .app bundle structure
+    contents_dir = os.path.join(app_path, "Contents")
+    macos_dir = os.path.join(contents_dir, "MacOS")
+    resources_dir = os.path.join(contents_dir, "Resources")
+    
+    os.makedirs(macos_dir, exist_ok=True)
+    os.makedirs(resources_dir, exist_ok=True)
+    
+    # Move the PyInstaller folder contents to MacOS
+    folder_path = os.path.join(dist_dir, folder_name)
+    if os.path.exists(folder_path):
+        for item in os.listdir(folder_path):
+            src = os.path.join(folder_path, item)
+            dst = os.path.join(macos_dir, item)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst)
+            else:
+                shutil.copy2(src, dst)
+        
+        # Make the main executable executable
+        main_executable = os.path.join(macos_dir, "FFMigo")
+        if os.path.exists(main_executable):
+            os.chmod(main_executable, 0o755)
+        
+        # Copy the _internal folder to Contents/Frameworks if it exists
+        internal_path = os.path.join(folder_path, "_internal")
+        if os.path.exists(internal_path):
+            frameworks_dst = os.path.join(app_path, "Contents", "Frameworks")
+            shutil.copytree(internal_path, frameworks_dst)
+        
+        # Remove the original folder
+        shutil.rmtree(folder_path)
+    
+    # Create Info.plist
+    info_plist = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>FFMigo</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.ffmigo.app</string>
+    <key>CFBundleName</key>
+    <string>FFMigo</string>
+    <key>CFBundleDisplayName</key>
+    <string>FFMigo</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.14</string>
+</dict>
+</plist>"""
+    
+    with open(os.path.join(contents_dir, "Info.plist"), "w") as f:
+        f.write(info_plist)
+    
+    print(f"Created {app_name} bundle successfully!")
 
 def install_dependencies():
     """Install required packages for building"""
@@ -28,37 +106,38 @@ def build_for_platform():
     current_platform = platform.system()
     print(f"Building for {current_platform}...")
     
-    # Base command
-    cmd = [
-        sys.executable, "-m", "PyInstaller",
-        "--windowed",
-        "--icon=ui/resources/icons/app_logo.png",
-        "--name=FFMigo",
-        "main.py"
-    ]
-    
-    # Platform-specific data paths
+    # Platform-specific build commands
     if current_platform == "Darwin":  # macOS
-        cmd.extend([
+        # Use PyInstaller's built-in app bundle creation
+        cmd = [
+            sys.executable, "-m", "PyInstaller",
+            "--onedir",
+            "--windowed",
+            "--icon=ui/resources/icons/app_logo.png",
+            "--name=FFMigo",
             "--add-data=style.qss:.",
             "--add-data=ui/resources/icons:ui/resources/icons",
             "--add-data=backend:backend",
-            "--add-data=ui:ui"
-        ])
+            "--add-data=ui:ui",
+            "--osx-bundle-identifier=com.ffmigo.app",
+            "--target-architecture=arm64",
+            "main.py"
+        ]
+        print("Building macOS application bundle...")
     elif current_platform == "Windows":
-        cmd.extend([
+        # Windows build command
+        cmd = [
+            sys.executable, "-m", "PyInstaller",
+            "--onefile",
+            "--windowed",
+            "--icon=ui/resources/icons/app_logo.png",
+            "--name=FFMigo",
             "--add-data=style.qss;.",
             "--add-data=ui/resources/icons;ui/resources/icons",
             "--add-data=backend;backend",
-            "--add-data=ui;ui"
-        ])
-    
-    # Platform-specific options
-    if current_platform == "Darwin":  # macOS
-        cmd.insert(3, "--onedir")  # Use onedir for macOS
-        print("Building macOS application...")
-    elif current_platform == "Windows":
-        cmd.insert(3, "--onefile")  # Use onefile for Windows
+            "--add-data=ui;ui",
+            "main.py"
+        ]
         print("Building Windows executable...")
     else:
         print(f"Unsupported platform: {current_platform}")
@@ -71,9 +150,15 @@ def build_for_platform():
         print("Build successful!")
         
         if current_platform == "Darwin":
-            print("macOS App: dist/FFMigo/")
-            print("Test it: ./dist/FFMigo/FFMigo")
-            print("Distribute the entire 'dist/FFMigo' folder")
+            # Remove the folder since we only want the .app bundle
+            folder_path = os.path.join("dist", "FFMigo")
+            if os.path.exists(folder_path):
+                shutil.rmtree(folder_path)
+                print("Removed folder, keeping only .app bundle")
+            
+            print("macOS App Bundle: dist/FFMigo.app")
+            print("Test it: open dist/FFMigo.app")
+            print("Distribute the 'FFMigo.app' bundle")
         elif current_platform == "Windows":
             print("Windows Executable: dist/FFMigo.exe")
             print("Test it: dist/FFMigo.exe")
@@ -98,11 +183,8 @@ echo "Installing FFMigo..."
 # Create Applications directory if it doesn't exist
 mkdir -p /Applications
 
-# Copy the application
-cp -R "dist/FFMigo" /Applications/
-
-# Make it executable
-chmod +x /Applications/FFMigo/FFMigo
+        # Copy the application bundle
+        cp -R "dist/FFMigo.app" /Applications/
 
 echo "FFMigo has been installed to /Applications/"
 echo "You can now launch FFMigo from your Applications folder!"
@@ -154,9 +236,8 @@ def create_distribution_readme():
 3. Launch FFMigo from Applications folder
 
 ### Manual Installation
-1. Copy the `FFMigo` folder to your desired location
-2. Make it executable: `chmod +x FFMigo/FFMigo`
-3. Run: `./FFMigo/FFMigo`
+1. Copy the `FFMigo.app` bundle to your Applications folder
+2. Launch from Applications folder or Finder
 
 ## Requirements
 - macOS 10.14 or later
@@ -255,9 +336,9 @@ def main():
             current_platform = platform.system()
             if current_platform == "Darwin":
                 print("\nNext steps:")
-                print("1. Test: ./dist/FFMigo/FFMigo")
+                print("1. Test: open dist/FFMigo.app")
                 print("2. Install: ./install_macos.sh")
-                print("3. Distribute the 'dist/FFMigo' folder")
+                print("3. Distribute the 'FFMigo.app' bundle")
             elif current_platform == "Windows":
                 print("\nNext steps:")
                 print("1. Test: dist/FFMigo.exe")
