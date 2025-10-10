@@ -6,6 +6,22 @@ At its core, FFmigo uses an AI to understand your request and act as your expert
 
 ---
 
+## Demo Videos
+
+Check out these quick demos :
+
+### 1. Trimming Videos & Using Checkpoints
+Learn how to trim your video and revert changes by going back to previous checkpoints:
+
+[![Trim Video & Checkpoints Demo](https://img.youtube.com/vi/q5EoUbdQWBI/0.jpg)](https://youtu.be/q5EoUbdQWBI)
+
+### 2. Fast Forward & Adding Logos
+See how to fast forward video segments and add your logo to the video:
+
+[![Fast Forward & Logo Demo](https://img.youtube.com/vi/Dglqu2qNtLM/0.jpg)](https://youtu.be/Dglqu2qNtLM)
+
+---
+
 ## Features
 - Drag-and-drop video loading
 - Chat interface for natural language video editing
