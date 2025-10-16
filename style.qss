@@ -351,6 +351,42 @@ QSplitter::handle:hover {
     font-size: 13px;
     font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
 }
+
+/* Success state with green color and checkmark */
+.SuccessBubble {
+    background: transparent;
+    color: #4ade80;
+    border: none;
+    border-radius: 0;
+    padding: 2px 0;
+    margin: 1px 0;
+    font-size: 13px;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* Processing state with blue color and spinner */
+.ProcessingBubble {
+    background: transparent;
+    color: #60a5fa;
+    border: none;
+    border-radius: 0;
+    padding: 2px 0;
+    margin: 1px 0;
+    font-size: 13px;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* Warning state with yellow color and exclamation */
+.WarningBubble {
+    background: transparent;
+    color: #fbbf24;
+    border: none;
+    border-radius: 0;
+    padding: 2px 0;
+    margin: 1px 0;
+    font-size: 13px;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+}
 /* ChatGPT-style Chat Input Area */
 #ChatInputArea {
     background: transparent;

@@ -421,6 +421,7 @@ class YouTubeDownloader(QThread):
         self.url = url
         self.project_dir = project_dir
         self._finished = False  # Flag to prevent multiple finish signals
+        self._download_count = 0  # Track number of downloads
         
     def run(self):
         try:
@@ -428,7 +429,18 @@ class YouTubeDownloader(QThread):
                 'format': 'best',
                 'outtmpl': os.path.join(self.project_dir, '%(title)s.%(ext)s'),
                 'progress_hooks': [self.progress_hook],
-                'quiet': True
+                'quiet': True,
+                # Prevent playlist downloads - only download single video
+                'noplaylist': True,
+                'playlistend': 1,
+                # Prevent downloading thumbnails and other metadata
+                'writethumbnail': False,
+                'writeinfojson': False,
+                'writesubtitles': False,
+                'writeautomaticsub': False,
+                # Limit to single video format
+                'format_sort': ['res', 'ext:mp4:m4a'],
+                'format_sort_force': True
             }
 
             try:
@@ -441,7 +453,15 @@ class YouTubeDownloader(QThread):
                     'format': 'worst',
                     'outtmpl': os.path.join(self.project_dir, '%(title)s.%(ext)s'),
                     'progress_hooks': [self.progress_hook],
-                    'quiet': True
+                    'quiet': True,
+                    # Prevent playlist downloads - only download single video
+                    'noplaylist': True,
+                    'playlistend': 1,
+                    # Prevent downloading thumbnails and other metadata
+                    'writethumbnail': False,
+                    'writeinfojson': False,
+                    'writesubtitles': False,
+                    'writeautomaticsub': False
                 }
                 
                 with yt_dlp.YoutubeDL(fallback_opts) as ydl:
@@ -451,6 +471,15 @@ class YouTubeDownloader(QThread):
             self.error_signal.emit(str(e))
 
     def progress_hook(self, d):
+        # Only handle the main video download, ignore thumbnails, subtitles, etc.
+        if 'filename' not in d:
+            return
+            
+        # Skip non-video downloads (thumbnails, subtitles, etc.)
+        filename = d.get('filename', '')
+        if any(skip_ext in filename.lower() for skip_ext in ['.jpg', '.png', '.webp', '.vtt', '.srt', '.json']):
+            return
+            
         if d['status'] == 'downloading':
             # Try multiple ways to get progress percentage
             percent_val = 0
@@ -483,25 +512,21 @@ class YouTubeDownloader(QThread):
                 except:
                     pass
             
-            # Method 4: Handle separate video/audio downloads
-            if percent_val == 0 and 'downloaded_bytes' in d and 'total_bytes_estimate' in d:
-                try:
-                    downloaded = d['downloaded_bytes']
-                    total = d['total_bytes_estimate']
-                    if total > 0:
-                        percent_val = int((downloaded / total) * 100)
-                except:
-                    pass
-            
             # Ensure percentage is within valid range
             percent_val = max(0, min(100, percent_val))
             
             self.progress_signal.emit(percent_val)
             
         elif d['status'] == 'finished':
-            if not self._finished:  # Prevent multiple finish signals
+            self._download_count += 1
+            print(f"[INFO] Download #{self._download_count} finished: {d.get('filename', 'unknown')}")
+            
+            # Only emit finished signal for the first video download
+            if not self._finished and self._download_count == 1:
                 self._finished = True
                 self.finished_signal.emit(d['filename'])
+            elif self._download_count > 1:
+                print(f"[WARNING] Ignoring additional download #{self._download_count}")
 class MainWindow(QMainWindow):
     process_result_ready = pyqtSignal(dict)
 
@@ -1013,7 +1038,7 @@ class MainWindow(QMainWindow):
         # Load video and update UI
         self.load_video(self.input_path)
         self.chat_log.clear()
-        self.append_chat_log("System", "Video loaded. Ready for commands.")
+        self.append_chat_log("Success", "Video loaded. Ready for commands.")
         self.refresh_project_list(select=self.project_dir)
         self.update_window_title()
     
@@ -1053,7 +1078,7 @@ class MainWindow(QMainWindow):
         # Load video and update UI
         self.load_video(self.input_path)
         self.chat_log.clear()
-        self.append_chat_log("System", "Videos merged successfully. Ready for commands.")
+        self.append_chat_log("Success", "Videos merged successfully. Ready for commands.")
         self.refresh_project_list(select=self.project_dir)
         self.update_window_title()
     
@@ -1076,6 +1101,12 @@ class MainWindow(QMainWindow):
         # Prevent multiple downloads
         if hasattr(self, 'youtube_thread') and self.youtube_thread.isRunning():
             print("[WARNING] Download already in progress")
+            QMessageBox.warning(self, "Download in Progress", "A YouTube download is already in progress. Please wait for it to complete.")
+            return
+        
+        # Validate URL format
+        if not any(domain in url.lower() for domain in ['youtube.com', 'youtu.be', 'm.youtube.com']):
+            QMessageBox.warning(self, "Invalid URL", "Please enter a valid YouTube URL.")
             return
         
         # Reset progress bar
@@ -1102,6 +1133,10 @@ class MainWindow(QMainWindow):
         #self.youtube_download_btn.setEnabled(True)
         self.youtube_input.setEnabled(True)
         
+        # Clean up the thread reference
+        if hasattr(self, 'youtube_thread'):
+            self.youtube_thread = None
+        
         # Check if file actually exists
         if not os.path.exists(file_path):
             print(f"[ERROR] Downloaded file does not exist: {file_path}")
@@ -1110,6 +1145,7 @@ class MainWindow(QMainWindow):
         
         # Validate the downloaded video has both video and audio streams
         if not self._validate_video_streams(file_path):
+            self.append_chat_log("Warning", "Video downloaded but may not have audio. You can still edit the video, but it will be silent.")
             QMessageBox.warning(self, "Download Warning", 
                               "Video downloaded but may not have audio. This could be due to:\n"
                               "1. The original video has no audio\n"
@@ -1153,7 +1189,7 @@ class MainWindow(QMainWindow):
         # Load video and update UI
         self.load_video(self.input_path)
         self.chat_log.clear()
-        self.append_chat_log("System", "YouTube video downloaded and loaded. Ready for commands.")
+        self.append_chat_log("Success", "YouTube video downloaded and loaded. Ready for commands.")
         self.refresh_project_list(select=self.project_dir)
         self.update_window_title()
         
@@ -1203,7 +1239,33 @@ class MainWindow(QMainWindow):
         #self.youtube_download_btn.setEnabled(True)
         self.youtube_input.setEnabled(True)
         
-        QMessageBox.critical(self, "Download Failed", error_msg)
+        # Clean up the thread reference
+        if hasattr(self, 'youtube_thread'):
+            self.youtube_thread = None
+        
+        # Clean up any partial downloads
+        if hasattr(self, 'project_dir') and self.project_dir and os.path.exists(self.project_dir):
+            try:
+                # Remove any downloaded files that might be incomplete
+                for file in os.listdir(self.project_dir):
+                    if file.endswith(('.mp4', '.webm', '.mkv', '.avi', '.mov')):
+                        os.remove(os.path.join(self.project_dir, file))
+                        print(f"[INFO] Cleaned up incomplete download: {file}")
+            except Exception as cleanup_error:
+                print(f"[WARNING] Failed to clean up partial downloads: {cleanup_error}")
+        
+        # Show user-friendly error message
+        if "rate limit" in error_msg.lower() or "429" in error_msg:
+            QMessageBox.critical(self, "Download Failed", 
+                               "YouTube rate limit exceeded. Please wait a few minutes before trying again.\n\n"
+                               "This can happen when downloading multiple videos quickly.")
+        elif "private" in error_msg.lower() or "unavailable" in error_msg.lower():
+            QMessageBox.critical(self, "Download Failed", 
+                               "This video is private, unavailable, or restricted.\n\n"
+                               "Please try a different video URL.")
+        else:
+            QMessageBox.critical(self, "Download Failed", 
+                               f"Failed to download video:\n\n{error_msg}")
 
     def append_chat_log(self, sender, message):
         from datetime import datetime
@@ -1218,8 +1280,17 @@ class MainWindow(QMainWindow):
             # Terminal-style command output
             self.chat_log.append(f'<div class="CommandBubble">> {message}</div>')
         elif sender == "Error":
-            # Terminal-style error output
-            self.chat_log.append(f'<div class="ErrorBubble">ERROR: {message}</div>')
+            # Terminal-style error output with red cross
+            self.chat_log.append(f'<div style="color: #ff4444; font-family: \'Fira Code\', \'Consolas\', \'Monaco\', \'Courier New\', monospace; font-size: 13px; padding: 2px 0; margin: 1px 0;">✗ ERROR: {message}</div>')
+        elif sender == "Success":
+            # Success output with green checkmark
+            self.chat_log.append(f'<div style="color: #4ade80; font-family: \'Fira Code\', \'Consolas\', \'Monaco\', \'Courier New\', monospace; font-size: 13px; padding: 2px 0; margin: 1px 0;">✓ SUCCESS: {message}</div>')
+        elif sender == "Processing":
+            # Processing output with blue spinner
+            self.chat_log.append(f'<div style="color: #60a5fa; font-family: \'Fira Code\', \'Consolas\', \'Monaco\', \'Courier New\', monospace; font-size: 13px; padding: 2px 0; margin: 1px 0;">⟳ PROCESSING: {message}</div>')
+        elif sender == "Warning":
+            # Warning output with yellow exclamation
+            self.chat_log.append(f'<div style="color: #fbbf24; font-family: \'Fira Code\', \'Consolas\', \'Monaco\', \'Courier New\', monospace; font-size: 13px; padding: 2px 0; margin: 1px 0;">⚠ WARNING: {message}</div>')
         self.chat_log.verticalScrollBar().setValue(self.chat_log.verticalScrollBar().maximum())
 
     def _make_attachment_chip(self, att, index):
@@ -1343,7 +1414,7 @@ class MainWindow(QMainWindow):
         self.append_chat_log("User", user_text)
         self.chat_input.clear()
         self.chat_input.setDisabled(True)
-        self.append_chat_log("System", "Processing...")
+        self.append_chat_log("Processing", "Analyzing your request...")
         # Run in background thread to keep UI responsive
         threading.Thread(target=self.process_command, args=(user_text,), daemon=True).start()
 
@@ -1430,12 +1501,12 @@ class MainWindow(QMainWindow):
         
         # Clear chat log and add restoration message
         self.chat_log.clear()
-        self.append_chat_log("System", f"Restored to Checkpoint {checkpoint_num}. Ready for new commands.")
+        self.append_chat_log("Success", f"Restored to Checkpoint {checkpoint_num}. Ready for new commands.")
 
     def save_settings(self, settings):
         self.app_config = settings
         config.save_config(settings)
-        self.append_chat_log("System", "Settings updated.")
+        self.append_chat_log("Success", "Settings updated.")
 
     def update_processed_video(self, video_path):
         try:
@@ -1599,7 +1670,9 @@ class MainWindow(QMainWindow):
             import os
             input_filename = os.path.basename(self.input_path)
             
+            # Show processing state for LLM call
             if hasattr(self, '_last_failed_command') and hasattr(self, '_last_error') and retry_count > 0:
+                self.append_chat_log("Processing", "Generating corrected FFmpeg command...")
                 # This is a retry attempt - use retry function
                 ffmpeg_cmd = llm_client.retry_ffmpeg_command(
                     self._last_failed_command,
@@ -1616,6 +1689,7 @@ class MainWindow(QMainWindow):
                     attachment_video_info=attachment_video_info if attachment_video_info else None
                 )
             else:
+                self.append_chat_log("Processing", "Generating FFmpeg command...")
                 # First attempt - use normal function
                 ffmpeg_cmd = llm_client.get_ffmpeg_command(
                     user_text,
@@ -1658,6 +1732,7 @@ class MainWindow(QMainWindow):
             return
         # Run FFmpeg (use ffmpeg_path if needed in ffmpeg_runner)
         print(f"[INFO] Running FFmpeg command...")
+        self.append_chat_log("Processing", "Executing FFmpeg command...")
         try:
             result = ffmpeg_runner.run_ffmpeg_command(ffmpeg_cmd, self.project_dir)
         except Exception as e:
@@ -1753,7 +1828,7 @@ class MainWindow(QMainWindow):
                     
             if retry_attempt:
                 # This is a retry notification - show user that we're retrying
-                self.append_chat_log("System", f"Command failed, retrying with corrected command... (attempt {retry_count + 1}/3)")
+                self.append_chat_log("Warning", f"Command failed, retrying with corrected command... (attempt {retry_count + 1}/3)")
                 return  # Don't re-enable input yet, retry is in progress
                 
             if error:
@@ -1769,9 +1844,9 @@ class MainWindow(QMainWindow):
                     self.input_ext = new_input_ext
                     self.update_processed_video(self.input_path)
                 if retry_count > 0:
-                    self.append_chat_log("System", f"Success on retry #{retry_count}!")
+                    self.append_chat_log("Success", f"Success on retry #{retry_count}!")
                 else:
-                    self.append_chat_log("System", "Success!")
+                    self.append_chat_log("Success", "Command executed successfully!")
                 # Enable undo button since a checkpoint was created
                 self.undo_btn.setEnabled(True)
             else:
@@ -2158,7 +2233,7 @@ class MainWindow(QMainWindow):
         
         # Clear chat and show message
         self.chat_log.clear()
-        self.append_chat_log("System", "Project loaded. Ready for commands.")
+        self.append_chat_log("Success", "Project loaded. Ready for commands.")
         self.update_window_title()
 
     def load_video(self, video_path):
